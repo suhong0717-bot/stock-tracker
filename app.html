@@ -211,6 +211,14 @@ td.stock-name:hover { color: #ffd740; }
 @keyframes flashSell { 0% { background: rgba(255,82,82,0.2); } 100% { background: transparent; } }
 .btn-del { background: none; border: none; color: #5a6a7a; cursor: pointer; font-size: 14px; padding: 2px 6px; border-radius: 3px; transition: color 0.15s; font-family: 'JetBrains Mono', monospace; }
 .btn-del:hover { color: #ff5252; }
+.drag-handle {
+  cursor: grab; color: #3a4a5a; font-size: 14px;
+  padding: 2px 6px; user-select: none; touch-action: none;
+  display: inline-flex; flex-direction: column; align-items: center; gap: 2px; line-height: 1;
+}
+.drag-handle:active { cursor: grabbing; color: #00e676; }
+tr.dragging { opacity: 0.4; }
+tr.drag-over { border-top: 2px solid #00e676; }
 .inline-input { background: transparent; border: none; border-bottom: 1px solid #00a854; color: #ffd740; font-family: 'JetBrains Mono', monospace; font-size: 13px; width: 70px; text-align: right; outline: none; padding: 2px 4px; }
 .empty-row td { text-align: center; color: #5a6a7a; padding: 30px; font-size: 12px; }
 
@@ -437,6 +445,7 @@ td.stock-name:hover { color: #ffd740; }
     <table>
       <thead>
         <tr>
+          <th></th>
           <th>종목명 (<span id="stockCount">0</span>)</th>
           <th>미주은</th>
           <th>내 잔고</th>
@@ -662,14 +671,15 @@ function renderTable() {
   const tbody = document.getElementById('stockTableBody');
   document.getElementById('stockCount').textContent = stocks.length;
   if (stocks.length === 0) {
-    tbody.innerHTML = '<tr class="empty-row"><td colspan="5">종목이 없습니다.</td></tr>';
+    tbody.innerHTML = '<tr class="empty-row"><td colspan="6">종목이 없습니다.</td></tr>';
     return;
   }
   tbody.innerHTML = stocks.map(s => {
     const diff = calcDiff(s);
     const diffClass = diff > 0 ? 'ratio-pos' : diff < 0 ? 'ratio-neg' : 'ratio-zero';
     const diffText = diff > 0 ? `+${diff}` : `${diff}`;
-    return `<tr id="row-${s.id}">
+    return `<tr id="row-${s.id}" draggable="true" data-id="${s.id}">
+      <td style="padding:8px 6px;"><span class="drag-handle" title="드래그하여 순서 변경">⬍</span></td>
       <td class="stock-name" onclick="editName(${s.id})">${s.name}</td>
       <td class="expert-qty"><input class="inline-input" type="number" value="${s.expertQty}" onchange="updateExpert(${s.id}, this.value)" style="color:#ffd740;"></td>
       <td><input class="inline-input" type="number" value="${s.myQty}" onchange="updateMyQty(${s.id}, this.value)" style="color:#00e676;"></td>
@@ -677,6 +687,50 @@ function renderTable() {
       <td><button class="btn-del" onclick="deleteStock(${s.id})">✕</button></td>
     </tr>`;
   }).join('');
+  initDrag();
+}
+
+// ── Drag & Drop ────────────────────────────────────────────────────────
+let dragSrcId = null;
+
+function initDrag() {
+  const tbody = document.getElementById('stockTableBody');
+  const rows = tbody.querySelectorAll('tr[draggable]');
+
+  rows.forEach(row => {
+    // 핸들에서만 드래그 시작
+    const handle = row.querySelector('.drag-handle');
+
+    handle.addEventListener('mousedown', () => { row.setAttribute('draggable', true); });
+    handle.addEventListener('touchstart', () => { row.setAttribute('draggable', true); }, { passive: true });
+
+    row.addEventListener('dragstart', e => {
+      dragSrcId = parseInt(row.dataset.id);
+      row.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+    });
+    row.addEventListener('dragend', () => {
+      row.classList.remove('dragging');
+      tbody.querySelectorAll('tr').forEach(r => r.classList.remove('drag-over'));
+    });
+    row.addEventListener('dragover', e => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      tbody.querySelectorAll('tr').forEach(r => r.classList.remove('drag-over'));
+      row.classList.add('drag-over');
+    });
+    row.addEventListener('drop', e => {
+      e.preventDefault();
+      const targetId = parseInt(row.dataset.id);
+      if (dragSrcId === null || dragSrcId === targetId) return;
+      const srcIdx = stocks.findIndex(s => s.id === dragSrcId);
+      const tgtIdx = stocks.findIndex(s => s.id === targetId);
+      const [moved] = stocks.splice(srcIdx, 1);
+      stocks.splice(tgtIdx, 0, moved);
+      dragSrcId = null;
+      render();
+    });
+  });
 }
 
 function renderSelect() {
