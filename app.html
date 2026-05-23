@@ -1,0 +1,962 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="수홍봇">
+<meta name="theme-color" content="#0a0c0f">
+<link rel="manifest" href="manifest.json">
+<title>수홍봇</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Noto+Sans+KR:wght@300;400;500;700;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+/* ── Reset ── */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: #0a0c0f;
+  color: #c8d6e5;
+  font-family: 'Noto Sans KR', sans-serif;
+  min-height: 100vh;
+  overflow-x: hidden;
+  padding-bottom: 70px;
+}
+
+/* ── Tab Pages ── */
+.page { display: none; }
+.page.active { display: block; }
+
+/* ── Bottom Tab Bar ── */
+.tab-bar {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  height: 62px;
+  background: #0f1215;
+  border-top: 1px solid #1e2530;
+  display: flex;
+  align-items: stretch;
+  z-index: 300;
+  backdrop-filter: blur(10px);
+}
+.tab-btn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #5a6a7a;
+  transition: color 0.2s;
+  padding-bottom: 4px;
+  position: relative;
+}
+.tab-btn.active { color: #00e676; }
+.tab-btn .tab-icon { font-size: 20px; line-height: 1; }
+.tab-btn .tab-label {
+  font-family: 'Noto Sans KR', sans-serif;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+}
+.tab-btn::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 20%; right: 20%;
+  height: 2px;
+  background: #00e676;
+  border-radius: 0 0 2px 2px;
+  transform: scaleX(0);
+  transition: transform 0.2s;
+}
+.tab-btn.active::after { transform: scaleX(1); }
+
+/* ═══════════════════════════════════
+   STOCK TRACKER STYLES
+═══════════════════════════════════ */
+.st-wrap {
+  position: relative;
+  z-index: 1;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 28px 20px;
+}
+.st-wrap::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(0,230,118,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,230,118,0.03) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* header */
+.st-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  margin-bottom: 28px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #1e2530;
+  position: relative; z-index: 1;
+}
+.st-header-left h1 {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 22px; font-weight: 700;
+  color: #00e676; letter-spacing: -0.5px;
+}
+.st-header-left .sub {
+  font-size: 12px; color: #5a6a7a;
+  margin-top: 4px;
+  font-family: 'JetBrains Mono', monospace;
+}
+.ratio-badge {
+  background: rgba(0,230,118,0.12);
+  border: 1px solid #00a854;
+  color: #00e676;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px; padding: 6px 14px;
+  border-radius: 4px;
+  display: flex; align-items: center; gap: 8px;
+}
+.ratio-badge span { color: #5a6a7a; font-size: 11px; }
+
+/* trade panel */
+.trade-panel {
+  background: #0f1215;
+  border: 1px solid #1e2530;
+  border-radius: 8px;
+  padding: 18px 20px;
+  margin-bottom: 24px;
+  display: flex; gap: 12px;
+  align-items: flex-end; flex-wrap: wrap;
+  position: relative; z-index: 1;
+}
+.trade-panel h3 {
+  width: 100%; font-size: 11px;
+  font-family: 'JetBrains Mono', monospace;
+  color: #5a6a7a; text-transform: uppercase;
+  letter-spacing: 1.5px; margin-bottom: 4px;
+}
+.field { display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 140px; }
+.field label { font-size: 11px; color: #5a6a7a; font-family: 'JetBrains Mono', monospace; letter-spacing: 0.5px; }
+.field select, .field input {
+  background: #141820; border: 1px solid #1e2530;
+  color: #c8d6e5; font-family: 'JetBrains Mono', monospace;
+  font-size: 14px; padding: 8px 12px;
+  border-radius: 4px; outline: none;
+  transition: border-color 0.2s; width: 100%;
+}
+.field select:focus, .field input:focus { border-color: #00a854; }
+.field select option { background: #141820; }
+.btn-buy {
+  background: rgba(0,230,118,0.12); border: 1px solid #00a854;
+  color: #00e676; font-family: 'JetBrains Mono', monospace;
+  font-size: 13px; font-weight: 700; padding: 8px 22px;
+  border-radius: 4px; cursor: pointer; letter-spacing: 1px;
+  transition: all 0.15s; white-space: nowrap;
+  align-self: flex-end; height: 38px;
+}
+.btn-buy:hover { background: rgba(0,230,118,0.22); box-shadow: 0 0 12px rgba(0,230,118,0.2); }
+.btn-sell {
+  background: rgba(255,82,82,0.1); border: 1px solid #992222;
+  color: #ff5252; font-family: 'JetBrains Mono', monospace;
+  font-size: 13px; font-weight: 700; padding: 8px 22px;
+  border-radius: 4px; cursor: pointer; letter-spacing: 1px;
+  transition: all 0.15s; white-space: nowrap;
+  align-self: flex-end; height: 38px;
+}
+.btn-sell:hover { background: rgba(255,82,82,0.2); box-shadow: 0 0 12px rgba(255,82,82,0.2); }
+.btn-add-stock {
+  background: transparent; border: 1px dashed #1e2530;
+  color: #5a6a7a; font-family: 'JetBrains Mono', monospace;
+  font-size: 12px; padding: 8px 16px; border-radius: 4px;
+  cursor: pointer; transition: all 0.15s;
+  align-self: flex-end; height: 38px;
+}
+.btn-add-stock:hover { border-color: #00a854; color: #00e676; }
+
+/* table */
+.table-wrap {
+  background: #0f1215; border: 1px solid #1e2530;
+  border-radius: 8px; overflow: hidden; margin-bottom: 24px;
+  position: relative; z-index: 1;
+}
+table { width: 100%; border-collapse: collapse; font-family: 'JetBrains Mono', monospace; font-size: 13px; }
+thead tr { background: #141820; border-bottom: 1px solid #1e2530; }
+th { padding: 12px 14px; text-align: right; font-size: 10px; font-weight: 500; color: #5a6a7a; letter-spacing: 1px; text-transform: uppercase; white-space: nowrap; }
+th:first-child { text-align: left; }
+tbody tr { border-bottom: 1px solid rgba(30,37,48,0.7); transition: background 0.12s; }
+tbody tr:last-child { border-bottom: none; }
+tbody tr:hover { background: rgba(0,230,118,0.03); }
+td { padding: 11px 14px; text-align: right; color: #c8d6e5; white-space: nowrap; }
+td:first-child { text-align: left; color: #00e676; font-weight: 500; }
+td.expert-qty { color: #ffd740; }
+td.my-qty { color: #00e676; font-weight: 700; }
+td.ratio-neg { color: #ff8a65; }
+td.ratio-zero { color: #5a6a7a; }
+td.ratio-pos { color: #00b4ff; }
+td.stock-name { cursor: pointer; }
+td.stock-name:hover { color: #ffd740; }
+.flash-buy { animation: flashBuy 0.6s ease-out; }
+.flash-sell { animation: flashSell 0.6s ease-out; }
+@keyframes flashBuy { 0% { background: rgba(0,230,118,0.25); } 100% { background: transparent; } }
+@keyframes flashSell { 0% { background: rgba(255,82,82,0.2); } 100% { background: transparent; } }
+.btn-del { background: none; border: none; color: #5a6a7a; cursor: pointer; font-size: 14px; padding: 2px 6px; border-radius: 3px; transition: color 0.15s; font-family: 'JetBrains Mono', monospace; }
+.btn-del:hover { color: #ff5252; }
+.inline-input { background: transparent; border: none; border-bottom: 1px solid #00a854; color: #ffd740; font-family: 'JetBrains Mono', monospace; font-size: 13px; width: 70px; text-align: right; outline: none; padding: 2px 4px; }
+.empty-row td { text-align: center; color: #5a6a7a; padding: 30px; font-size: 12px; }
+
+/* modal */
+.st-modal-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.7);
+  z-index: 100; display: flex; align-items: center; justify-content: center;
+  backdrop-filter: blur(4px);
+}
+.st-modal-overlay.hidden { display: none !important; }
+.st-modal {
+  background: #0f1215; border: 1px solid #1e2530;
+  border-radius: 10px; padding: 24px; width: 360px; max-width: 95vw;
+}
+.st-modal h3 { font-family: 'JetBrains Mono', monospace; color: #00e676; font-size: 14px; margin-bottom: 18px; letter-spacing: 1px; }
+.st-modal .field { margin-bottom: 14px; }
+.modal-btns { display: flex; gap: 10px; margin-top: 18px; }
+.modal-btns button { flex: 1; }
+
+/* toast */
+.st-toast {
+  position: fixed; bottom: 80px; left: 50%;
+  transform: translateX(-50%) translateY(80px);
+  background: #141820; border: 1px solid #00a854;
+  color: #00e676; font-family: 'JetBrains Mono', monospace;
+  font-size: 13px; padding: 14px 20px 0 20px;
+  border-radius: 10px; z-index: 400; opacity: 0;
+  transition: all 0.3s; pointer-events: none;
+  min-width: 260px; max-width: 90vw; overflow: hidden;
+}
+.st-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); pointer-events: auto; }
+.st-toast.error { border-color: #ff5252; color: #ff5252; }
+.toast-body { display: flex; align-items: center; justify-content: space-between; padding-bottom: 12px; gap: 14px; }
+.toast-undo-btn { background: transparent; border: 1px solid currentColor; color: inherit; font-family: 'JetBrains Mono', monospace; font-size: 12px; padding: 4px 12px; border-radius: 4px; cursor: pointer; white-space: nowrap; flex-shrink: 0; }
+.toast-bar-wrap { height: 3px; background: rgba(255,255,255,0.1); margin: 0 -20px; }
+.toast-bar { height: 3px; background: #00e676; width: 100%; transform-origin: left; }
+.toast-bar.running { animation: barShrink 5s linear forwards; }
+.st-toast.error .toast-bar { background: #ff5252; }
+@keyframes barShrink { from { transform: scaleX(1); } to { transform: scaleX(0); } }
+
+/* ═══════════════════════════════════
+   ASSET DASHBOARD STYLES
+═══════════════════════════════════ */
+:root {
+  --debt: #ff4d6d; --debt-bg: rgba(255,77,109,0.08);
+  --invest: #00d4a0; --invest-bg: rgba(0,212,160,0.08);
+  --lock: #fbbf24; --lock-bg: rgba(251,191,36,0.08);
+  --house: #60a5fa; --house-bg: rgba(96,165,250,0.08);
+  --total: #a78bfa;
+  --surface: #13131a; --surface2: #1c1c28;
+  --ad-border: #2a2a3d; --muted: #7070a0; --ad-text: #e8e8f0;
+}
+.ad-wrap { padding: 24px 16px 16px; max-width: 480px; margin: 0 auto; }
+.ad-header { text-align: center; margin-bottom: 28px; }
+.ad-header-label { font-family: 'Space Mono', monospace; font-size: 11px; letter-spacing: 4px; color: var(--muted); text-transform: uppercase; margin-bottom: 10px; }
+.ad-header-date { font-size: 12px; color: var(--muted); font-family: 'Space Mono', monospace; }
+
+.net-total {
+  background: var(--surface); border: 1px solid var(--ad-border);
+  border-radius: 20px; padding: 22px 24px 20px;
+  text-align: center; margin-bottom: 20px;
+  position: relative; overflow: hidden; cursor: pointer;
+  transition: border-color .2s;
+}
+.net-total:active { border-color: var(--total); }
+.net-total::before {
+  content: ''; position: absolute; inset: 0;
+  background: radial-gradient(ellipse at 50% -20%, rgba(167,139,250,0.12) 0%, transparent 70%);
+  pointer-events: none;
+}
+.net-label { font-size: 12px; color: var(--muted); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 8px; display: flex; align-items: center; justify-content: center; gap: 8px; }
+.net-toggle-wrap { display: inline-flex; align-items: center; background: #1e1e2e; border-radius: 14px; padding: 4px; gap: 2px; margin-left: 8px; }
+.net-toggle-opt { font-family: 'Noto Sans KR', sans-serif; font-size: 12px; font-weight: 500; padding: 6px 16px; border-radius: 10px; border: none; background: transparent; color: var(--muted); cursor: pointer; transition: background .2s, color .2s; white-space: nowrap; }
+.net-toggle-opt.active { background: #2e2e42; color: var(--ad-text); font-weight: 700; }
+.net-value { font-family: 'Space Mono', monospace; font-size: 42px; font-weight: 700; color: var(--total); letter-spacing: -1px; transition: opacity .2s; }
+.net-unit { font-size: 16px; color: var(--muted); margin-left: 4px; }
+.net-dual { display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 4px; }
+.net-block { text-align: center; }
+.net-block-label { font-size: 10px; font-family: 'Space Mono', monospace; color: var(--muted); letter-spacing: 1px; margin-bottom: 4px; }
+.net-block-val { font-family: 'Space Mono', monospace; font-size: 30px; font-weight: 700; color: var(--total); }
+.net-block-val.eval-val { color: #c4b5fd; }
+.net-divider { width: 1px; height: 48px; background: var(--ad-border); flex-shrink: 0; }
+.net-unit-small { font-size: 11px; color: var(--muted); }
+.net-diff-line { margin-top: 8px; font-family: 'Space Mono', monospace; font-size: 12px; min-height: 18px; }
+
+.summary-bar { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 24px; }
+.summary-chip { background: var(--surface); border: 1px solid var(--ad-border); border-radius: 14px; padding: 14px 10px; text-align: center; }
+.summary-chip .chip-icon { font-size: 18px; margin-bottom: 4px; }
+.summary-chip .chip-val { font-family: 'Space Mono', monospace; font-size: 15px; font-weight: 700; }
+.summary-chip .chip-lbl { font-size: 10px; color: var(--muted); margin-top: 2px; }
+.chip-debt .chip-val { color: var(--debt); }
+.chip-invest .chip-val { color: var(--invest); }
+.chip-lock .chip-val { color: var(--lock); }
+.chip-house .chip-val { color: var(--house); }
+
+.cards { display: flex; flex-direction: column; gap: 16px; }
+.card { background: var(--surface); border-radius: 20px; border: 1px solid var(--ad-border); overflow: hidden; }
+.card-header { display: flex; align-items: center; justify-content: space-between; padding: 20px 20px 14px; cursor: pointer; user-select: none; }
+.card-header-left { display: flex; align-items: center; gap: 12px; }
+.card-icon { font-size: 22px; }
+.card-title { font-size: 13px; color: var(--muted); font-weight: 500; }
+.card-total { font-family: 'Space Mono', monospace; font-size: 22px; font-weight: 700; margin-top: 2px; }
+.card-chevron { font-size: 12px; color: var(--muted); transition: transform .3s; }
+.card.collapsed .card-chevron { transform: rotate(-90deg); }
+.card-body { padding: 0 20px 20px; border-top: 1px solid var(--ad-border); }
+.card.collapsed .card-body { display: none; }
+.card-debt .card-total { color: var(--debt); }
+.card-invest .card-total { color: var(--invest); }
+.card-lock .card-total { color: var(--lock); }
+.card-house .card-total { color: var(--house); }
+.card-debt { border-top: 2px solid var(--debt); }
+.card-invest { border-top: 2px solid var(--invest); }
+.card-lock { border-top: 2px solid var(--lock); }
+.card-house { border-top: 2px solid var(--house); }
+.card-total-dual { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.card-total-arrow { font-size: 11px; color: var(--muted); }
+.card-total-eval { font-family: 'Space Mono', monospace; font-size: 16px; font-weight: 700; }
+.card-total-diff { font-family: 'Space Mono', monospace; font-size: 11px; margin-left: 2px; }
+
+.item-row { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.04); }
+.item-row:last-child { border-bottom: none; }
+.item-name { font-size: 14px; color: var(--ad-text); }
+.item-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+.item-right { text-align: right; }
+.item-val { font-family: 'Space Mono', monospace; font-size: 15px; font-weight: 700; }
+.neg { color: var(--debt); }
+.pos-invest { color: var(--invest); }
+.pos-lock { color: var(--lock); }
+.pos-house { color: var(--house); }
+.invest-vals { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+.invest-row-pair { display: flex; align-items: center; gap: 6px; }
+.invest-badge { font-size: 9px; font-family: 'Space Mono', monospace; padding: 2px 6px; border-radius: 4px; font-weight: 700; letter-spacing: 0.5px; }
+.badge-principal { background: rgba(255,255,255,0.07); color: var(--muted); }
+.badge-eval { background: var(--invest-bg); color: var(--invest); border: 1px solid rgba(0,212,160,0.3); }
+.invest-diff { font-family: 'Space Mono', monospace; font-size: 11px; margin-top: 2px; }
+
+.add-btn { display: flex; align-items: center; gap: 8px; margin-top: 14px; padding: 10px 14px; border: 1px dashed var(--ad-border); border-radius: 10px; background: transparent; color: var(--muted); font-size: 13px; font-family: 'Noto Sans KR', sans-serif; cursor: pointer; width: 100%; transition: border-color .2s, color .2s; }
+.add-btn:hover { border-color: var(--muted); color: var(--ad-text); }
+
+.ad-modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.7); backdrop-filter: blur(6px); z-index: 400; align-items: flex-end; justify-content: center; }
+.ad-modal-overlay.open { display: flex; }
+.ad-modal { background: var(--surface2); border: 1px solid var(--ad-border); border-radius: 24px 24px 0 0; padding: 28px 24px 80px; width: 100%; max-width: 480px; animation: slideUp .3s ease; position: relative; }
+.ad-modal-title { font-size: 16px; font-weight: 700; margin-bottom: 20px; color: var(--ad-text); }
+.ad-modal label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+.ad-modal input { width: 100%; background: var(--surface); border: 1px solid var(--ad-border); border-radius: 10px; color: var(--ad-text); font-family: 'Space Mono', monospace; font-size: 15px; padding: 12px 14px; margin-bottom: 16px; outline: none; }
+.ad-modal input:focus { border-color: var(--total); }
+.modal-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 4px; }
+.btn { padding: 14px; border-radius: 12px; font-size: 14px; font-family: 'Noto Sans KR', sans-serif; font-weight: 600; border: none; cursor: pointer; transition: opacity .15s; }
+.btn:active { opacity: .7; }
+.btn-cancel { background: var(--surface); color: var(--muted); }
+.btn-save { background: var(--total); color: #fff; }
+.btn-delete { background: var(--debt-bg); color: var(--debt); border: 1px solid var(--debt); grid-column: 1/-1; }
+.btn-delete.hidden { display: none; }
+.btn-delete-small { position: absolute; top: 16px; right: 16px; width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--ad-border); background: var(--surface); font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; opacity: 0.4; transition: opacity .2s; }
+.btn-delete-small:active { opacity: 1; }
+.btn-delete-small.hidden { display: none; }
+.owner-toggle { display: flex; background: var(--surface); border: 1px solid var(--ad-border); border-radius: 10px; padding: 4px; gap: 4px; margin-bottom: 16px; }
+.owner-opt { flex: 1; padding: 10px; border-radius: 8px; border: none; background: transparent; color: var(--muted); font-family: 'Noto Sans KR', sans-serif; font-size: 13px; font-weight: 500; cursor: pointer; transition: background .18s, color .18s; }
+.owner-opt.active { background: var(--surface2); color: var(--ad-text); font-weight: 700; }
+
+.ad-footer { text-align: center; margin-top: 24px; font-size: 11px; color: var(--muted); font-family: 'Space Mono', monospace; }
+
+.undo-toast {
+  position: fixed; bottom: 80px; left: 50%;
+  transform: translateX(-50%) translateY(80px);
+  background: #2a2a3d; border: 1px solid var(--ad-border);
+  border-radius: 16px; padding: 14px 18px;
+  display: flex; align-items: center; gap: 14px;
+  font-size: 13px; color: var(--ad-text);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+  z-index: 500; white-space: nowrap;
+  transition: transform .3s cubic-bezier(.34,1.56,.64,1), opacity .3s;
+  opacity: 0; pointer-events: none;
+}
+.undo-toast.show { transform: translateX(-50%) translateY(0); opacity: 1; pointer-events: all; }
+.undo-toast-text { color: var(--muted); }
+.undo-toast-text strong { color: var(--ad-text); }
+.undo-btn { background: var(--total); color: #fff; border: none; border-radius: 8px; padding: 6px 14px; font-size: 12px; font-weight: 700; font-family: 'Noto Sans KR', sans-serif; cursor: pointer; }
+.undo-progress { position: absolute; bottom: 0; left: 0; height: 3px; background: var(--total); border-radius: 0 0 16px 16px; width: 100%; transform-origin: left; }
+
+@keyframes slideUp { from { transform: translateY(40px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════
+     PAGE 1: STOCK TRACKER
+══════════════════════════════════ -->
+<div class="page active" id="page-stock">
+<div class="st-wrap">
+
+  <div class="st-header">
+    <div class="st-header-left">
+      <h1>◈ FOLLOW TRACKER</h1>
+      <div class="sub">전문가 주식 팔로우 · 자동 비율 계산</div>
+    </div>
+    <div style="display:flex; flex-direction:column; align-items:flex-end; gap:6px;">
+      <div class="ratio-badge">
+        1/<input id="ratioInput" type="number" min="1" max="100" value="20"
+          style="background:transparent;border:none;border-bottom:1px solid #00a854;color:#00e676;font-family:'JetBrains Mono',monospace;font-size:13px;width:36px;text-align:center;outline:none;"
+          oninput="updateRatio()">
+        <span>팔로우 비율</span>
+      </div>
+      <div style="font-family:'JetBrains Mono',monospace; font-size:10px; color:#5a6a7a;">last update · 2026.05.23</div>
+    </div>
+  </div>
+
+  <div class="trade-panel">
+    <h3>▶ 거래 입력</h3>
+    <div class="field">
+      <label>종목</label>
+      <select id="tradeStock"></select>
+    </div>
+    <div class="field" style="max-width:130px;">
+      <label>미주은 수량</label>
+      <input type="number" id="tradeQty" min="1" placeholder="수량 입력" />
+    </div>
+    <button class="btn-buy" onclick="executeTrade('buy')">▲ 매수</button>
+    <button class="btn-sell" onclick="executeTrade('sell')">▼ 매도</button>
+    <button class="btn-add-stock" onclick="openAddModal()">+ 종목 추가</button>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>종목명 (<span id="stockCount">0</span>)</th>
+          <th>미주은</th>
+          <th>내 잔고</th>
+          <th>차이</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="stockTableBody"></tbody>
+    </table>
+  </div>
+
+</div>
+</div>
+
+<!-- ══════════════════════════════════
+     PAGE 2: ASSET DASHBOARD
+══════════════════════════════════ -->
+<div class="page" id="page-asset">
+<div class="ad-wrap">
+
+  <div class="ad-header">
+    <div class="ad-header-label">ASSET DASHBOARD</div>
+    <div class="ad-header-date" id="today-date"></div>
+  </div>
+
+  <div class="net-total">
+    <div class="net-label">
+      순자산
+      <div class="net-toggle-wrap" onclick="toggleNetMode()" style="cursor:pointer">
+        <button class="net-toggle-opt active" id="net-toggle-principal">원금</button>
+        <button class="net-toggle-opt" id="net-toggle-eval">평가</button>
+      </div>
+    </div>
+    <div id="net-single">
+      <div class="net-value" id="net-display">–<span class="net-unit">만원</span></div>
+    </div>
+    <div id="net-dual-view" style="display:none">
+      <div class="net-dual">
+        <div class="net-block">
+          <div class="net-block-label">원금</div>
+          <div class="net-block-val" id="net-principal">–</div>
+          <div class="net-unit-small">만원</div>
+        </div>
+        <div class="net-divider"></div>
+        <div class="net-block">
+          <div class="net-block-label">평가</div>
+          <div class="net-block-val eval-val" id="net-eval">–</div>
+          <div class="net-unit-small">만원</div>
+        </div>
+      </div>
+      <div class="net-diff-line" id="net-diff-display"></div>
+    </div>
+  </div>
+
+  <div class="summary-bar">
+    <div class="summary-chip chip-invest" onclick="scrollToCard('invest')" style="cursor:pointer">
+      <div class="chip-icon">💸</div>
+      <div class="chip-val" id="chip-invest">–</div>
+      <div class="chip-lbl">투자</div>
+    </div>
+    <div class="summary-chip chip-lock" onclick="scrollToCard('lock')" style="cursor:pointer">
+      <div class="chip-icon">🔒</div>
+      <div class="chip-val" id="chip-lock">–</div>
+      <div class="chip-lbl">고정</div>
+    </div>
+    <div class="summary-chip chip-house" onclick="scrollToCard('house')" style="cursor:pointer">
+      <div class="chip-icon">🏠</div>
+      <div class="chip-val" id="chip-house">–</div>
+      <div class="chip-lbl">부동산</div>
+    </div>
+    <div class="summary-chip chip-debt" onclick="scrollToCard('debt')" style="cursor:pointer">
+      <div class="chip-icon">🚨</div>
+      <div class="chip-val" id="chip-debt">–</div>
+      <div class="chip-lbl">부채</div>
+    </div>
+  </div>
+
+  <div class="cards" id="cards-container"></div>
+  <div class="ad-footer" id="footer-updated"></div>
+
+</div>
+</div>
+
+<!-- Stock Tracker Modal -->
+<div class="st-modal-overlay hidden" id="stModalOverlay">
+  <div class="st-modal">
+    <h3>+ 종목 추가</h3>
+    <div class="field">
+      <label>종목명</label>
+      <input type="text" id="newStockName" placeholder="예) 엔비디아" />
+    </div>
+    <div class="field">
+      <label>미주은 수량</label>
+      <input type="number" id="newStockQty" placeholder="0" min="0" />
+    </div>
+    <div class="modal-btns">
+      <button class="btn-add-stock" onclick="closeAddModal()" style="height:38px;">취소</button>
+      <button class="btn-buy" onclick="addStock()" style="height:38px;">추가</button>
+    </div>
+  </div>
+</div>
+
+<!-- Stock Toast -->
+<div class="st-toast" id="stToast">
+  <div class="toast-body">
+    <span id="toastMsg"></span>
+    <button class="toast-undo-btn" id="undoBtn" onclick="undoDelete()" style="display:none;">↩ 되돌리기</button>
+  </div>
+  <div class="toast-bar-wrap">
+    <div class="toast-bar" id="toastBar"></div>
+  </div>
+</div>
+
+<!-- Asset Modal -->
+<div class="ad-modal-overlay" id="ad-modal-overlay">
+  <div class="ad-modal">
+    <button class="btn-delete-small" id="modal-delete-btn" onclick="deleteItem()">🗑️</button>
+    <div class="ad-modal-title" id="modal-title">항목 편집</div>
+    <label>항목명</label>
+    <input type="text" id="modal-name" placeholder="예: 농협주식">
+    <label>금액 (만원)</label>
+    <input type="number" id="modal-amount" placeholder="예: 4000">
+    <label>메모 (선택)</label>
+    <input type="text" id="modal-note">
+    <div id="modal-eval-section" style="display:none">
+      <label>평가금액 (선택)</label>
+      <input type="number" id="modal-eval">
+    </div>
+    <label style="margin-top:4px">구분</label>
+    <div class="owner-toggle">
+      <button class="owner-opt active" id="owner-personal" onclick="selectOwner('personal')">개인</button>
+      <button class="owner-opt" id="owner-couple" onclick="selectOwner('couple')">부부 👫</button>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-cancel" onclick="closeAdModal()">취소</button>
+      <button class="btn btn-save" onclick="saveItem()">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- Asset Undo Toast -->
+<div class="undo-toast" id="undo-toast">
+  <span class="undo-toast-text"><strong id="undo-item-name"></strong> 삭제됨</span>
+  <button class="undo-btn" onclick="undoAdDelete()">되돌리기</button>
+  <div class="undo-progress" id="undo-progress"></div>
+</div>
+
+<!-- Bottom Tab Bar -->
+<nav class="tab-bar">
+  <button class="tab-btn active" id="tab-stock" onclick="switchTab('stock')">
+    <span class="tab-icon">📈</span>
+    <span class="tab-label">팔로우</span>
+  </button>
+  <button class="tab-btn" id="tab-asset" onclick="switchTab('asset')">
+    <span class="tab-icon">💰</span>
+    <span class="tab-label">자산</span>
+  </button>
+</nav>
+
+<script>
+// ══════════════════════════════════
+// TAB SWITCHING
+// ══════════════════════════════════
+function switchTab(tab) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-' + tab).classList.add('active');
+  document.getElementById('tab-' + tab).classList.add('active');
+  if (tab === 'asset') renderAll();
+}
+
+// ══════════════════════════════════
+// STOCK TRACKER
+// ══════════════════════════════════
+const ST_KEY = 'stock-tracker-data';
+let RATIO = 20;
+let nextId = 21;
+let stocks = [
+  { id: 1,  name: 'AMD',            expertQty: 186, myQty: 10 },
+  { id: 2,  name: '크레도',          expertQty: 430, myQty: 22 },
+  { id: 3,  name: '엔비디아',        expertQty: 345, myQty: 18 },
+  { id: 4,  name: '샌디스크',        expertQty: 48,  myQty: 3  },
+  { id: 5,  name: '마이크론',        expertQty: 90,  myQty: 5  },
+  { id: 6,  name: '마벨 테크놀로지', expertQty: 344, myQty: 18 },
+  { id: 7,  name: '버티브',          expertQty: 188, myQty: 10 },
+  { id: 8,  name: 'GE버노바',        expertQty: 50,  myQty: 3  },
+  { id: 9,  name: '블룸 에너지',     expertQty: 180, myQty: 9  },
+  { id: 10, name: '하이닉스',        expertQty: 38,  myQty: 2  },
+  { id: 11, name: 'ARM',            expertQty: 180, myQty: 9  },
+  { id: 12, name: 'AAOI',           expertQty: 254, myQty: 13 },
+  { id: 13, name: '루멘텀',          expertQty: 50,  myQty: 3  },
+  { id: 14, name: '셀레스티카',      expertQty: 105, myQty: 6  },
+  { id: 15, name: '브로드컴',        expertQty: 98,  myQty: 5  },
+  { id: 16, name: '웨스턴 디지털',   expertQty: 88,  myQty: 5  },
+  { id: 17, name: '코히런트',        expertQty: 100, myQty: 5  },
+  { id: 18, name: '삼성전자',        expertQty: 180, myQty: 9  },
+  { id: 19, name: 'TSMC ADR',       expertQty: 70,  myQty: 4  },
+  { id: 20, name: '델 테크놀로지',   expertQty: 100, myQty: 5  },
+];
+
+function stSaveData() {
+  localStorage.setItem(ST_KEY, JSON.stringify({ stocks, RATIO, nextId }));
+}
+function stLoadData() {
+  try {
+    const saved = localStorage.getItem(ST_KEY);
+    if (saved) {
+      const d = JSON.parse(saved);
+      if (d.stocks) stocks = d.stocks;
+      if (d.RATIO) { RATIO = d.RATIO; document.getElementById('ratioInput').value = RATIO; }
+      if (d.nextId) nextId = d.nextId;
+    }
+  } catch(e) {}
+}
+
+function calcDiff(s) {
+  return Math.round((s.expertQty / RATIO - s.myQty) * 100) / 100;
+}
+
+function render() { renderTable(); renderSelect(); stSaveData(); }
+
+function renderTable() {
+  const tbody = document.getElementById('stockTableBody');
+  document.getElementById('stockCount').textContent = stocks.length;
+  if (stocks.length === 0) {
+    tbody.innerHTML = '<tr class="empty-row"><td colspan="5">종목이 없습니다.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = stocks.map(s => {
+    const diff = calcDiff(s);
+    const diffClass = diff > 0 ? 'ratio-pos' : diff < 0 ? 'ratio-neg' : 'ratio-zero';
+    const diffText = diff > 0 ? `+${diff}` : `${diff}`;
+    return `<tr id="row-${s.id}">
+      <td class="stock-name" onclick="editName(${s.id})">${s.name}</td>
+      <td class="expert-qty"><input class="inline-input" type="number" value="${s.expertQty}" onchange="updateExpert(${s.id}, this.value)" style="color:#ffd740;"></td>
+      <td><input class="inline-input" type="number" value="${s.myQty}" onchange="updateMyQty(${s.id}, this.value)" style="color:#00e676;"></td>
+      <td class="${diffClass}" style="font-weight:700;">${diff === 0 ? '0' : diffText}</td>
+      <td><button class="btn-del" onclick="deleteStock(${s.id})">✕</button></td>
+    </tr>`;
+  }).join('');
+}
+
+function renderSelect() {
+  const sel = document.getElementById('tradeStock');
+  const prev = sel.value;
+  sel.innerHTML = stocks.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+  if (prev) sel.value = prev;
+}
+
+function executeTrade(type) {
+  const stockId = parseInt(document.getElementById('tradeStock').value);
+  const qty = parseInt(document.getElementById('tradeQty').value);
+  if (!stockId || isNaN(qty) || qty <= 0) { showStToast('종목과 수량을 올바르게 입력해주세요.', true); return; }
+  const stock = stocks.find(s => s.id === stockId);
+  if (!stock) return;
+  const oldExpert = stock.expertQty;
+  if (type === 'buy') { stock.expertQty += qty; }
+  else {
+    if (stock.expertQty - qty < 0) { showStToast('미주은 잔고가 부족합니다.', true); return; }
+    stock.expertQty -= qty;
+  }
+  render();
+  const row = document.getElementById(`row-${stockId}`);
+  if (row) { row.classList.remove('flash-buy','flash-sell'); void row.offsetWidth; row.classList.add(type==='buy'?'flash-buy':'flash-sell'); }
+  const change = stock.expertQty - oldExpert;
+  const sign = change >= 0 ? '+' : '';
+  showStToast(`${stock.name} ${type==='buy'?'▲ 매수':'▼ 매도'} — 미주은: ${stock.expertQty} (${sign}${change})`);
+  document.getElementById('tradeQty').value = '';
+}
+
+function updateExpert(id, val) {
+  const stock = stocks.find(s => s.id === id); if (!stock) return;
+  const n = parseFloat(val); if (isNaN(n) || n < 0) return;
+  stock.expertQty = n; renderTable(); stSaveData();
+}
+function updateMyQty(id, val) {
+  const stock = stocks.find(s => s.id === id); if (!stock) return;
+  const n = parseFloat(val); if (isNaN(n) || n < 0) return;
+  stock.myQty = n; renderTable(); stSaveData();
+}
+function editName(id) {
+  const stock = stocks.find(s => s.id === id); if (!stock) return;
+  const newName = prompt('종목명 수정:', stock.name);
+  if (newName && newName.trim()) { stock.name = newName.trim(); render(); }
+}
+function openAddModal() { document.getElementById('stModalOverlay').classList.remove('hidden'); document.getElementById('newStockName').focus(); }
+function closeAddModal() {
+  document.getElementById('stModalOverlay').classList.add('hidden');
+  document.getElementById('newStockName').value = '';
+  document.getElementById('newStockQty').value = '';
+}
+function addStock() {
+  const name = document.getElementById('newStockName').value.trim();
+  const qty = parseFloat(document.getElementById('newStockQty').value) || 0;
+  if (!name) { showStToast('종목명을 입력해주세요.', true); return; }
+  stocks.push({ id: nextId++, name, expertQty: qty, myQty: 0 });
+  closeAddModal(); render(); showStToast(`${name} 추가됨`);
+}
+function updateRatio() {
+  const v = parseInt(document.getElementById('ratioInput').value);
+  if (v && v > 0) { RATIO = v; render(); }
+}
+
+// delete + undo
+let undoStock = null, undoTimer = null;
+function deleteStock(id) {
+  const stock = stocks.find(s => s.id === id); if (!stock) return;
+  stocks = stocks.filter(s => s.id !== id); render(); showUndoStToast(stock);
+}
+function showUndoStToast(stock) {
+  undoStock = stock;
+  const btn = document.getElementById('undoBtn');
+  const bar = document.getElementById('toastBar');
+  btn.style.display = 'inline';
+  clearTimeout(undoTimer);
+  bar.className = 'toast-bar'; void bar.offsetWidth; bar.className = 'toast-bar running';
+  showStToast(`${stock.name} 삭제됨`);
+  undoTimer = setTimeout(() => { btn.style.display='none'; undoStock=null; document.getElementById('stToast').className='st-toast'; }, 5000);
+}
+function undoDelete() {
+  if (!undoStock) return;
+  clearTimeout(undoTimer);
+  const restored = undoStock;
+  stocks.push(restored); stocks.sort((a,b)=>a.id-b.id);
+  document.getElementById('undoBtn').style.display='none';
+  document.getElementById('stToast').className='st-toast';
+  undoStock = null; render(); showStToast('↩ '+restored.name+' 복구됨');
+}
+
+let stToastTimer;
+function showStToast(msg, isError=false) {
+  const t = document.getElementById('stToast');
+  const bar = document.getElementById('toastBar');
+  document.getElementById('toastMsg').textContent = msg;
+  t.className = 'st-toast show' + (isError?' error':'');
+  clearTimeout(stToastTimer);
+  if (!undoStock) {
+    bar.className = 'toast-bar'; void bar.offsetWidth; bar.className = 'toast-bar running';
+    stToastTimer = setTimeout(() => { t.className='st-toast'; }, 2800);
+  }
+}
+
+document.getElementById('stModalOverlay').addEventListener('click', function(e) { if(e.target===this) closeAddModal(); });
+
+// ══════════════════════════════════
+// ASSET DASHBOARD
+// ══════════════════════════════════
+const AD_KEY = 'asset_dashboard_v2';
+const defaultData = {
+  lastUpdated: new Date().toISOString(),
+  groups: [
+    { id:'invest', icon:'💸', label:'투자', type:'invest', items:[
+      { id:'i4', name:'농협주식', amount:4000, note:'싼타1000, 양도세300', full:null, eval:null, owner:'personal' },
+      { id:'i5', name:'주식보상', amount:700, note:'', full:null, eval:null, owner:'personal' },
+      { id:'i6', name:'부부ISA', amount:2200, note:'', full:null, eval:3100, owner:'couple' },
+    ]},
+    { id:'lock', icon:'🔒', label:'고정자산', type:'lock', items:[
+      { id:'i7', name:'연금저축펀드', amount:1800, note:'600-회사 넣기 26년', full:null, eval:null, owner:'personal' },
+      { id:'i8', name:'회사연금저축', amount:1070, note:'', full:null, eval:null, owner:'personal' },
+      { id:'i9', name:'농협청약', amount:1120, note:'10+10 / 22일', full:null, owner:'personal' },
+    ]},
+    { id:'house', icon:'🏠', label:'부동산', type:'house', items:[
+      { id:'i10', name:'주택자금', amount:6500, note:'', full:null, owner:'personal' },
+      { id:'i11', name:'대출상환', amount:290, note:'', full:null, owner:'couple' },
+    ]},
+    { id:'debt', icon:'🚨', label:'부채', type:'debt', items:[
+      { id:'i1', name:'엄마주식대출', amount:-3000, note:'', full:null, owner:'personal' },
+      { id:'i2', name:'농협 청약대출', amount:-1000, note:'', full:null, owner:'personal' },
+      { id:'i3', name:'제주 신용대출', amount:-3000, note:'', full:null, owner:'personal' },
+    ]},
+  ]
+};
+
+function adLoadData() {
+  try { const r=localStorage.getItem(AD_KEY); if(!r) return defaultData; return JSON.parse(r); } catch { return defaultData; }
+}
+function adSaveData(d) { d.lastUpdated=new Date().toISOString(); localStorage.setItem(AD_KEY, JSON.stringify(d)); }
+
+let appData = adLoadData();
+let netMode = 'principal';
+
+function fmtAbs(n) { return Math.abs(n).toLocaleString(); }
+function effectiveAmount(item) { return item.owner==='couple' ? item.amount/2 : item.amount; }
+function effectiveEval(item) { const e=(item.eval!==null&&item.eval!==undefined)?item.eval:item.amount; return item.owner==='couple'?e/2:e; }
+
+function computeTotals() {
+  const t={}; appData.groups.forEach(g=>{ t[g.id]=g.items.reduce((s,i)=>s+effectiveAmount(i),0); }); return t;
+}
+function computeEvalTotals() {
+  const EVAL_IDS=['i7','i8']; const t={};
+  appData.groups.forEach(g=>{ t[g.id]=g.items.reduce((s,i)=>{ const u=g.type==='invest'||(g.type==='lock'&&EVAL_IDS.includes(i.id)); return s+(u?effectiveEval(i):effectiveAmount(i)); },0); }); return t;
+}
+
+function renderAll() {
+  const totals=computeTotals(); const evalTotals=computeEvalTotals();
+  const netP=Object.values(totals).reduce((a,b)=>a+b,0);
+  const netE=Object.values(evalTotals).reduce((a,b)=>a+b,0);
+  const netDiff=netE-netP;
+  document.getElementById('net-display').innerHTML=`${netP.toLocaleString()}<span class="net-unit">만원</span>`;
+  document.getElementById('net-principal').textContent=netP.toLocaleString();
+  document.getElementById('net-eval').textContent=netE.toLocaleString();
+  const diffEl=document.getElementById('net-diff-display');
+  if(netDiff!==0){const s=netDiff>0?'+':'−';const c=netDiff>0?'var(--invest)':'var(--debt)';diffEl.innerHTML=`<span style="color:${c};font-weight:700">${s} ${Math.abs(netDiff).toLocaleString()} 만원</span>`;}else{diffEl.innerHTML='';}
+  const chipMap={debt:'chip-debt',invest:'chip-invest',lock:'chip-lock',house:'chip-house'};
+  appData.groups.forEach(g=>{const el=document.getElementById(chipMap[g.type]||'chip-'+g.type);if(el){const v=netMode==='eval'?evalTotals[g.id]:totals[g.id];el.textContent=(g.type==='debt'?'− ':'')+fmtAbs(v);}});
+  const container=document.getElementById('cards-container'); container.innerHTML='';
+  appData.groups.forEach((g)=>{ container.appendChild(buildCard(g,totals[g.id],evalTotals[g.id])); });
+  const d=new Date(); document.getElementById('today-date').textContent=`${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')}`;
+  const lu=new Date(appData.lastUpdated); document.getElementById('footer-updated').textContent=`마지막 수정: ${lu.getFullYear()}.${String(lu.getMonth()+1).padStart(2,'0')}.${String(lu.getDate()).padStart(2,'0')} ${String(lu.getHours()).padStart(2,'0')}:${String(lu.getMinutes()).padStart(2,'0')}`;
+}
+
+function buildCard(group, total, evalTotal) {
+  const div=document.createElement('div'); div.className=`card card-${group.type}`; div.dataset.gid=group.id;
+  const valClass=group.type==='debt'?'neg':group.type==='invest'?'pos-invest':group.type==='lock'?'pos-lock':'pos-house';
+  let totalDisplay;
+  const showDual=netMode==='eval'&&(group.type==='invest'||group.type==='lock')&&evalTotal!==undefined;
+  if(showDual){const diff=evalTotal-total;const diffSign=diff>=0?'+':'−';const diffColor=diff>=0?'var(--invest)':'var(--debt)';const hasAnyEval=group.items.some(i=>i.eval!==null&&i.eval!==undefined);const colClass=group.type==='invest'?'pos-invest':'pos-lock';totalDisplay=`<div class="card-total-dual"><span class="card-total ${colClass}" style="font-size:18px">${fmtAbs(total)}</span>${hasAnyEval?`<span class="card-total-arrow">→</span><span class="card-total-eval ${colClass}">${fmtAbs(evalTotal)}</span><span class="card-total-diff" style="color:${diffColor}">(${diffSign}${Math.abs(diff).toLocaleString()})</span>`:''}<span style="font-size:11px;color:var(--muted)">만원</span></div>`;}
+  else{totalDisplay=`<div class="card-total ${valClass}">${group.type==='debt'?'− ':''}${fmtAbs(total)} <span style="font-size:12px;color:var(--muted)">만원</span></div>`;}
+  div.innerHTML=`<div class="card-header" onclick="toggleCard('${group.id}')"><div class="card-header-left"><span class="card-icon">${group.icon}</span><div><div class="card-title">${group.label}</div>${totalDisplay}</div></div><span class="card-chevron">▼</span></div><div class="card-body">${group.items.map(item=>buildItemRow(item,group.type,group.id)).join('')}<button class="add-btn" onclick="openAdModal('${group.id}',null)">＋ 항목 추가</button></div>`;
+  return div;
+}
+
+function buildItemRow(item, type, gid) {
+  const valClass=type==='debt'?'neg':type==='invest'?'pos-invest':type==='lock'?'pos-lock':'pos-house';
+  const sign=item.amount<0?'−':'+';
+  const noteLine=item.note?`<div class="item-sub">${item.note}</div>`:'';
+  const EVAL_IDS=['i7','i8'];
+  const isEval=type==='invest'||(type==='lock'&&EVAL_IDS.includes(item.id));
+  const dispAmount=effectiveAmount(item);
+  let valDisplay;
+  if(isEval&&netMode==='eval'){const hasEval=item.eval!==null&&item.eval!==undefined;const dispEval=hasEval?effectiveEval(item):null;const diff=hasEval?dispEval-dispAmount:null;const diffSign=diff!==null?(diff>=0?'+':'−'):'';const diffColor=diff!==null?(diff>=0?'var(--invest)':'var(--debt)'):'var(--muted)';const valColor=type==='invest'?'pos-invest':'pos-lock';valDisplay=`<div class="invest-vals"><div class="invest-row-pair"><span class="invest-badge badge-principal">원금</span><span class="item-val ${valColor}" style="font-size:13px">${fmtAbs(dispAmount)}</span></div>${hasEval?`<div class="invest-row-pair"><span class="invest-badge badge-eval">평가</span><span class="item-val ${valColor}" style="font-size:13px">${fmtAbs(dispEval)}</span></div><div class="invest-diff" style="color:${diffColor}">${diffSign} ${fmtAbs(diff)}</div>`:`<div class="invest-diff" style="color:var(--muted);font-size:10px">평가금 미입력</div>`}</div>`;}
+  else{valDisplay=`<div class="item-right"><div class="item-val ${valClass}">${sign} ${fmtAbs(dispAmount)}</div></div>`;}
+  return `<div class="item-row" onclick="openAdModal('${gid}','${item.id}')" style="${isEval&&netMode==='eval'?'align-items:flex-start':''}"><div><div class="item-name">${item.name}${item.owner==='couple'?' 💑':''}</div>${noteLine}</div>${valDisplay}</div>`;
+}
+
+function toggleCard(gid) { const el=document.querySelector(`.card[data-gid="${gid}"]`); if(el) el.classList.toggle('collapsed'); }
+function scrollToCard(type) { const g=appData.groups.find(g=>g.type===type); if(!g) return; const card=document.querySelector(`.card[data-gid="${g.id}"]`); if(!card) return; card.classList.remove('collapsed'); setTimeout(()=>card.scrollIntoView({behavior:'smooth',block:'start'}),50); }
+
+let _editGid=null, _editIid=null;
+function openAdModal(gid, iid) {
+  _editGid=gid; _editIid=iid; const isNew=iid===null;
+  document.getElementById('modal-title').textContent=isNew?'항목 추가':'항목 편집';
+  const delBtn=document.getElementById('modal-delete-btn');
+  isNew?delBtn.classList.add('hidden'):delBtn.classList.remove('hidden');
+  const group=appData.groups.find(g=>g.id===gid);
+  const item=!isNew?group.items.find(i=>i.id===iid):null;
+  const EVAL_IDS=['i7','i8'];
+  const showEval=group&&(group.type==='invest'||(group.type==='lock'&&item&&EVAL_IDS.includes(item.id)));
+  document.getElementById('modal-eval-section').style.display=showEval?'block':'none';
+  if(!isNew){document.getElementById('modal-name').value=item.name;document.getElementById('modal-amount').value=item.amount;document.getElementById('modal-note').value=item.note||'';document.getElementById('modal-eval').value=(item.eval!==null&&item.eval!==undefined)?item.eval:'';selectOwner(item.owner||'personal');}
+  else{document.getElementById('modal-name').value='';document.getElementById('modal-amount').value='';document.getElementById('modal-note').value='';document.getElementById('modal-eval').value='';selectOwner('personal');}
+  document.getElementById('ad-modal-overlay').classList.add('open');
+}
+function closeAdModal() { document.getElementById('ad-modal-overlay').classList.remove('open'); }
+function saveItem() {
+  const name=document.getElementById('modal-name').value.trim();
+  const amount=parseFloat(document.getElementById('modal-amount').value);
+  const note=document.getElementById('modal-note').value.trim();
+  const evalVal=document.getElementById('modal-eval').value;
+  const owner=document.getElementById('owner-couple').classList.contains('active')?'couple':'personal';
+  if(!name||isNaN(amount)){alert('항목명과 금액을 입력해주세요.');return;}
+  const group=appData.groups.find(g=>g.id===_editGid);
+  if(_editIid===null){group.items.push({id:'i'+Date.now(),name,amount,note:note||'',eval:evalVal!==''?parseFloat(evalVal):null,owner});}
+  else{const item=group.items.find(i=>i.id===_editIid);item.name=name;item.amount=amount;item.note=note||'';item.eval=evalVal!==''?parseFloat(evalVal):null;item.owner=owner;}
+  adSaveData(appData); renderAll(); closeAdModal();
+}
+
+let _undoSnapshot=null, _adUndoTimer=null;
+function deleteItem() {
+  const group=appData.groups.find(g=>g.id===_editGid);
+  const item=group.items.find(i=>i.id===_editIid);
+  _undoSnapshot={groupId:_editGid,item:JSON.parse(JSON.stringify(item)),index:group.items.indexOf(item)};
+  group.items=group.items.filter(i=>i.id!==_editIid);
+  adSaveData(appData); renderAll(); closeAdModal(); showAdUndoToast(item.name);
+}
+function showAdUndoToast(name) {
+  const toast=document.getElementById('undo-toast');
+  const progress=document.getElementById('undo-progress');
+  document.getElementById('undo-item-name').textContent=name;
+  if(_adUndoTimer) clearTimeout(_adUndoTimer);
+  toast.classList.add('show');
+  progress.style.transition='none'; progress.style.transform='scaleX(1)';
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{ progress.style.transition='transform 5s linear'; progress.style.transform='scaleX(0)'; }));
+  _adUndoTimer=setTimeout(()=>{ toast.classList.remove('show'); _undoSnapshot=null; },5000);
+}
+function undoAdDelete() {
+  if(!_undoSnapshot) return;
+  const group=appData.groups.find(g=>g.id===_undoSnapshot.groupId);
+  group.items.splice(_undoSnapshot.index,0,_undoSnapshot.item);
+  adSaveData(appData); renderAll();
+  clearTimeout(_adUndoTimer);
+  document.getElementById('undo-toast').classList.remove('show');
+  _undoSnapshot=null;
+}
+function toggleNetMode() {
+  netMode=netMode==='principal'?'eval':'principal';
+  const single=document.getElementById('net-single'); const dual=document.getElementById('net-dual-view');
+  const btnP=document.getElementById('net-toggle-principal'); const btnE=document.getElementById('net-toggle-eval');
+  if(netMode==='eval'){single.style.display='none';dual.style.display='block';btnP.classList.remove('active');btnE.classList.add('active');}
+  else{single.style.display='block';dual.style.display='none';btnP.classList.add('active');btnE.classList.remove('active');}
+  renderAll();
+}
+function selectOwner(val) {
+  document.getElementById('owner-personal').classList.toggle('active',val==='personal');
+  document.getElementById('owner-couple').classList.toggle('active',val==='couple');
+}
+document.getElementById('ad-modal-overlay').addEventListener('click',function(e){if(e.target===this)closeAdModal();});
+
+// ══════════════════════════════════
+// PWA
+// ══════════════════════════════════
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/stock-tracker/sw.js');
+}
+
+// ══════════════════════════════════
+// INIT
+// ══════════════════════════════════
+stLoadData();
+render();
+</script>
+</body>
+</html>

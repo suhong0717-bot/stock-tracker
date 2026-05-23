@@ -2,7 +2,7 @@
   "name": "주식 팔로우 트래커",
   "short_name": "트래커",
   "description": "미주은 팔로우 주식 트래커",
-  "start_url": "/stock-tracker/stock-tracker.html",
+  "start_url": "/stock-tracker/app.html",
   "display": "standalone",
   "background_color": "#0a0c0f",
   "theme_color": "#00e676",
