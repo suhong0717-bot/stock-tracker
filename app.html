@@ -676,7 +676,7 @@ function renderTable() {
   }
   tbody.innerHTML = stocks.map(s => {
     const diff = calcDiff(s);
-    const diffClass = diff > 0 ? 'ratio-pos' : diff < 0 ? 'ratio-neg' : 'ratio-zero';
+    const diffClass = (diff > -1 && diff < 1) ? 'ratio-zero' : diff > 0 ? 'ratio-pos' : 'ratio-neg';
     const diffText = diff > 0 ? `+${diff}` : `${diff}`;
     return `<tr id="row-${s.id}" draggable="true" data-id="${s.id}">
       <td style="padding:8px 6px;"><span class="drag-handle" title="드래그하여 순서 변경">⬍</span></td>
