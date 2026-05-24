@@ -690,23 +690,24 @@ function renderTable() {
   initDrag();
 }
 
-// ── Drag & Drop ────────────────────────────────────────────────────────
+// ── Drag & Drop (터치 지원) ────────────────────────────────────────────
 let dragSrcId = null;
+let touchDragEl = null;
+let touchClone = null;
+let touchStartY = 0;
 
 function initDrag() {
   const tbody = document.getElementById('stockTableBody');
-  const rows = tbody.querySelectorAll('tr[draggable]');
+  const rows = Array.from(tbody.querySelectorAll('tr[data-id]'));
 
   rows.forEach(row => {
-    // 핸들에서만 드래그 시작
     const handle = row.querySelector('.drag-handle');
 
-    handle.addEventListener('mousedown', () => { row.setAttribute('draggable', true); });
-    handle.addEventListener('touchstart', () => { row.setAttribute('draggable', true); }, { passive: true });
-
+    // ── 마우스 드래그 ──
+    handle.addEventListener('mousedown', () => row.setAttribute('draggable', true));
     row.addEventListener('dragstart', e => {
       dragSrcId = parseInt(row.dataset.id);
-      row.classList.add('dragging');
+      setTimeout(() => row.classList.add('dragging'), 0);
       e.dataTransfer.effectAllowed = 'move';
     });
     row.addEventListener('dragend', () => {
@@ -715,7 +716,6 @@ function initDrag() {
     });
     row.addEventListener('dragover', e => {
       e.preventDefault();
-      e.dataTransfer.dropEffect = 'move';
       tbody.querySelectorAll('tr').forEach(r => r.classList.remove('drag-over'));
       row.classList.add('drag-over');
     });
@@ -723,14 +723,62 @@ function initDrag() {
       e.preventDefault();
       const targetId = parseInt(row.dataset.id);
       if (dragSrcId === null || dragSrcId === targetId) return;
-      const srcIdx = stocks.findIndex(s => s.id === dragSrcId);
-      const tgtIdx = stocks.findIndex(s => s.id === targetId);
-      const [moved] = stocks.splice(srcIdx, 1);
-      stocks.splice(tgtIdx, 0, moved);
+      reorderStocks(dragSrcId, targetId);
       dragSrcId = null;
-      render();
+    });
+
+    // ── 터치 드래그 ──
+    handle.addEventListener('touchstart', e => {
+      touchDragEl = row;
+      touchStartY = e.touches[0].clientY;
+      touchDragEl.classList.add('dragging');
+
+      // 클론 생성
+      touchClone = row.cloneNode(true);
+      touchClone.style.cssText = `position:fixed;left:0;right:0;opacity:0.85;z-index:9999;background:#1e2530;pointer-events:none;`;
+      touchClone.style.top = row.getBoundingClientRect().top + 'px';
+      document.body.appendChild(touchClone);
+    }, { passive: true });
+
+    handle.addEventListener('touchmove', e => {
+      if (!touchDragEl) return;
+      e.preventDefault();
+      const touch = e.touches[0];
+      const deltaY = touch.clientY - touchStartY;
+      touchClone.style.top = (touchDragEl.getBoundingClientRect().top + deltaY) + 'px';
+
+      // 어느 행 위에 있는지 탐지
+      tbody.querySelectorAll('tr[data-id]').forEach(r => r.classList.remove('drag-over'));
+      const elBelow = document.elementFromPoint(touch.clientX, touch.clientY);
+      const targetRow = elBelow ? elBelow.closest('tr[data-id]') : null;
+      if (targetRow && targetRow !== touchDragEl) targetRow.classList.add('drag-over');
+    }, { passive: false });
+
+    handle.addEventListener('touchend', e => {
+      if (!touchDragEl) return;
+      const touch = e.changedTouches[0];
+      const elBelow = document.elementFromPoint(touch.clientX, touch.clientY);
+      const targetRow = elBelow ? elBelow.closest('tr[data-id]') : null;
+
+      if (targetRow && targetRow !== touchDragEl) {
+        reorderStocks(parseInt(touchDragEl.dataset.id), parseInt(targetRow.dataset.id));
+      }
+
+      touchDragEl.classList.remove('dragging');
+      tbody.querySelectorAll('tr').forEach(r => r.classList.remove('drag-over'));
+      if (touchClone) { touchClone.remove(); touchClone = null; }
+      touchDragEl = null;
     });
   });
+}
+
+function reorderStocks(srcId, tgtId) {
+  const srcIdx = stocks.findIndex(s => s.id === srcId);
+  const tgtIdx = stocks.findIndex(s => s.id === tgtId);
+  if (srcIdx === -1 || tgtIdx === -1) return;
+  const [moved] = stocks.splice(srcIdx, 1);
+  stocks.splice(tgtIdx, 0, moved);
+  render();
 }
 
 function renderSelect() {
