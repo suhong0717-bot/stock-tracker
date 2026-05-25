@@ -880,14 +880,39 @@ function renderStats() {
       return;
     }
 
-    // 연도별로 그룹핑
+    // 연도별로 그룹핑 — 여러 해에 걸친 일정은 연도별로 분리
     const byYear = {};
     schedules.forEach(s => {
-      const yr = s.startYear;
-      if (!byYear[yr]) byYear[yr] = {};
-      if (!byYear[yr][s.title]) byYear[yr][s.title] = 0;
-      const { totalDays } = calcDuration(s.startTs, s.endTs, s.startYear, s.startMonth, s.endYear, s.endMonth);
-      byYear[yr][s.title] += totalDays;
+      const startY = s.startYear;
+      const endY = s.endYear;
+      for (let yr = startY; yr <= endY; yr++) {
+        // 이 연도에 해당하는 기간만 계산
+        const segStartYear = yr;
+        const segStartMonth = yr === startY ? s.startMonth : 0;
+        const segEndYear = yr;
+        const segEndMonth = yr === endY ? s.endMonth : 11;
+
+        // timestamp 기반이면 날짜도 연도별로 잘라서 계산
+        let segStartTs = null, segEndTs = null;
+        if (s.startTs && s.endTs) {
+          const sDate = new Date(s.startTs);
+          const eDate = new Date(s.endTs);
+          if (s.startYear === sDate.getFullYear() && s.startMonth === sDate.getMonth()) {
+            segStartTs = yr === startY ? s.startTs : new Date(yr, 0, 1).getTime();
+            // 주 뷰 일정 끝 토요일 연장
+            const endSat = new Date(eDate);
+            if (sDate.getDay() === 0) endSat.setDate(endSat.getDate() + (6 - endSat.getDay()));
+            segEndTs = yr === endY ? endSat.getTime() : new Date(yr, 11, 31).getTime();
+          }
+        }
+
+        const { totalDays } = calcDuration(segStartTs, segEndTs, segStartYear, segStartMonth, segEndYear, segEndMonth);
+        if (totalDays <= 0) continue;
+
+        if (!byYear[yr]) byYear[yr] = {};
+        if (!byYear[yr][s.title]) byYear[yr][s.title] = 0;
+        byYear[yr][s.title] += totalDays;
+      }
     });
 
     let rows = '';
@@ -1210,7 +1235,8 @@ function deleteRangeSchedule(id) {
   saveRangeSchedules();
   closeYearPopup();
   renderCalendar();
-  setTimeout(scrollToToday, 100);
+  const body = document.getElementById('statsBody');
+  if (body && !body.classList.contains('hidden')) renderStats();
 }
 
 function showPlannerToast(msg) {
@@ -2309,6 +2335,8 @@ function saveScheduleFromPopup(sy, sm, ey, em, startTs, endTs, isWeek) {
   closeYearPopup();
   cancelFabMode();
   try { renderCalendar(); } catch(err) { console.error(err); }
+  const statsBody = document.getElementById('statsBody');
+  if (statsBody && !statsBody.classList.contains('hidden')) renderStats();
   showPlannerToast(`✅ "${title}" 추가 완료`);
 }
 
