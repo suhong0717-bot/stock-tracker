@@ -880,26 +880,37 @@ function renderStats() {
       return;
     }
 
-    // 같은 title끼리 합산
-    const grouped = {};
+    // 연도별로 그룹핑
+    const byYear = {};
     schedules.forEach(s => {
-      const key = s.title;
-      if (!grouped[key]) grouped[key] = { title: key, totalDays: 0 };
+      const yr = s.startYear;
+      if (!byYear[yr]) byYear[yr] = {};
+      if (!byYear[yr][s.title]) byYear[yr][s.title] = 0;
       const { totalDays } = calcDuration(s.startTs, s.endTs, s.startYear, s.startMonth, s.endYear, s.endMonth);
-      grouped[key].totalDays += totalDays;
+      byYear[yr][s.title] += totalDays;
     });
 
-    const rows = Object.values(grouped).map((g, i) => {
-      const months = Math.floor(g.totalDays / 30);
-      const days = g.totalDays % 30;
-      const duration = `${months > 0 ? months + '개월 ' : ''}${days}일 (${g.totalDays}일)`;
-      return `
-        <div style="display:flex;align-items:center;gap:8px;padding:2px 0;">
-          <span style="min-width:20px;font-weight:700;font-size:13px;color:${i === 0 ? p.color : 'transparent'};">${p.name}</span>
-          <span style="flex:1;font-size:12px;color:var(--text);">${g.title}</span>
-          <span style="font-size:12px;font-weight:700;color:${p.color};white-space:nowrap;">${duration}</span>
-        </div>`;
-    }).join('');
+    let rows = '';
+    let firstPerson = true;
+    Object.keys(byYear).sort().forEach(yr => {
+      let firstYear = true;
+      Object.entries(byYear[yr]).forEach(([title, totalDays]) => {
+        const months = Math.floor(totalDays / 30);
+        const days = totalDays % 30;
+        const duration = `${months > 0 ? months + '개월 ' : ''}${days}일 (${totalDays}일)`;
+        const personLabel = firstPerson ? `<span style="min-width:20px;font-weight:700;font-size:13px;color:${p.color};">${p.name}</span>` : `<span style="min-width:20px;"></span>`;
+        const yearLabel = firstYear ? `<span style="font-size:11px;font-weight:700;color:var(--text-dim);min-width:28px;">${String(yr).slice(2)}년</span>` : `<span style="min-width:28px;"></span>`;
+        rows += `
+          <div style="display:flex;align-items:center;gap:6px;padding:2px 0;">
+            ${personLabel}
+            ${yearLabel}
+            <span style="flex:1;font-size:12px;color:var(--text);">${title}</span>
+            <span style="font-size:12px;font-weight:700;color:${p.color};white-space:nowrap;">${duration}</span>
+          </div>`;
+        firstPerson = false;
+        firstYear = false;
+      });
+    });
 
     el.innerHTML = rows;
   });
@@ -1040,7 +1051,7 @@ function buildYearView(year) {
     const rangeLabels = myRanges.slice(0, 2).map((s, i) => {
       const colorIdx = rangeSchedules.indexOf(s) % PASTEL_COLORS.length;
       const color = PASTEL_COLORS[colorIdx];
-      return `<div style="font-size:8px;font-weight:700;color:${color.text};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;line-height:1.2;">${s.title}</div>`;
+      return `<div style="font-size:8px;font-weight:700;color:${color.text};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;line-height:1.2;">${s.owner === 'hong' ? '홍 ' : '희 '}${s.title}</div>`;
     }).join('');
 
     cell.innerHTML = `
@@ -1302,7 +1313,7 @@ function buildWeekYear(year) {
     const scheduleLabels = mySchedules.slice(0, 2).map(s => {
       const colorIdx = rangeSchedules.indexOf(s) % PASTEL_COLORS.length;
       const color = PASTEL_COLORS[colorIdx];
-      return `<span style="font-size:10px;font-weight:700;color:${color.text};margin-left:4px;">${s.title}</span>`;
+      return `<span style="font-size:10px;font-weight:700;color:${color.text};margin-left:4px;">${s.owner === 'hong' ? '홍 ' : '희 '}${s.title}</span>`;
     }).join('');
 
     row.innerHTML = `
@@ -1612,7 +1623,7 @@ function buildScheduleBars(year, month, firstDay, daysInMonth) {
           font-family:'Noto Sans KR',sans-serif;
           box-sizing:border-box;
         `;
-        if (isStart) bar.textContent = s.title;
+        if (isStart) bar.textContent = (s.owner === 'hong' ? '홍 ' : '희 ') + s.title;
         layer.appendChild(bar);
       }
     });
