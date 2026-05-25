@@ -3,6 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="플래너">
+<meta name="theme-color" content="#d4845a">
+<link rel="manifest" href="planner-manifest.json">
 <title>육아휴직 플래너</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=Noto+Serif+KR:wght@400;700&display=swap" rel="stylesheet">
 <style>
@@ -762,6 +768,10 @@ if (inIframe) {
     const fab = document.querySelector('.fab-group');
     if (fab) fab.style.bottom = '16px';
   });
+}
+
+if ('serviceWorker' in navigator && !inIframe) {
+  navigator.serviceWorker.register('planner-sw.js');
 }
 
 const STORAGE_KEY = 'parental-planner-v1';
