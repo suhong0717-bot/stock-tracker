@@ -400,6 +400,67 @@ tr.drag-over { border-top: 2px solid #00e676; }
 .undo-progress { position: absolute; bottom: 0; left: 0; height: 3px; background: var(--total); border-radius: 0 0 16px 16px; width: 100%; transform-origin: left; }
 
 @keyframes slideUp { from { transform: translateY(40px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+/* Portfolio Panel */
+.port-panel {
+  background: #0d1117;
+  border: 1px solid #1e2a38;
+  border-radius: 10px;
+  margin-bottom: 10px;
+  overflow: hidden;
+}
+.port-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.port-toggle-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  font-weight: 700;
+  color: #00e676;
+  letter-spacing: 0.5px;
+}
+.port-chevron { font-size: 10px; color: #5a6a7a; transition: transform 0.2s; }
+.port-chevron.open { transform: rotate(180deg); }
+.port-body { border-top: 1px solid #1e2a38; padding: 12px 16px; }
+.port-2col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2px 12px;
+}
+.port-col-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  color: #5a6a7a;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  padding-bottom: 6px;
+  border-bottom: 1px solid #1e2a38;
+  margin-bottom: 2px;
+}
+.port-cell { display: flex; flex-direction: row; align-items: baseline; justify-content: flex-end; padding: 4px 0; gap: 4px; overflow: hidden; }
+.port-cell-empty { visibility: hidden; pointer-events: none; }
+.port-cell-highlight .port-calc { color: #00e676 !important; font-weight: 700; }
+.port-cell-key { font-family: 'JetBrains Mono', monospace; font-size: 9px; color: #5a6a7a; white-space: nowrap; flex-shrink: 0; padding-left: 15%; }
+.port-cell-key::after { content: ' ₩'; color: #3a5a7a; font-size: 8px; }
+.port-input-blue {
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid #1e3a5a;
+  color: #58b4ff;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  min-width: 0;
+  flex: 1;
+  outline: none;
+  padding: 1px 0;
+  text-align: right;
+}
+.port-calc { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #c9d1d9; text-align: right; flex: 1; min-width: 0; }
+.port-divider { height: 1px; background: #1e2a38; margin: 6px 0; }
 </style>
 </head>
 <body>
@@ -422,7 +483,79 @@ tr.drag-over { border-top: 2px solid #00e676; }
           oninput="updateRatio()">
         <span>팔로우 비율</span>
       </div>
-      <div style="font-family:'JetBrains Mono',monospace; font-size:10px; color:#5a6a7a;">last update · 2026.05.24</div>
+      <div style="font-family:'JetBrains Mono',monospace; font-size:10px; color:#5a6a7a;">last update · 2026.05.28</div>
+    </div>
+  </div>
+
+  <!-- 포트폴리오 요약 패널 -->
+  <div class="port-panel" id="portPanel">
+    <div class="port-toggle" onclick="togglePort()">
+      <span class="port-toggle-label">◈ 포트폴리오 요약</span>
+      <span class="port-chevron" id="portChevron">▼</span>
+    </div>
+    <div class="port-body" id="portBody" style="display:none;">
+
+      <!-- 2열 그리드 -->
+      <div class="port-2col">
+        <div class="port-col-label">미주은</div>
+        <div class="port-col-label">내 팔로우 (÷<span id="port-ratio-display">20</span>)</div>
+
+        <div class="port-cell">
+          <span class="port-cell-key">총액</span>
+          <input class="port-input-blue" id="port-expert-total" type="text" placeholder="0" oninput="onPortInput(this,'port-expert-total')" />
+        </div>
+        <div class="port-cell">
+          <span class="port-cell-key">총액</span>
+          <span class="port-calc" id="port-my-total">-</span>
+        </div>
+
+        <div class="port-cell">
+          <span class="port-cell-key">현금</span>
+          <input class="port-input-blue" id="port-expert-cash" type="text" placeholder="0" oninput="onPortInput(this,'port-expert-cash')" />
+        </div>
+        <div class="port-cell">
+          <span class="port-cell-key">현금</span>
+          <span class="port-calc" id="port-my-cash">-</span>
+        </div>
+
+        <div class="port-cell">
+          <span class="port-cell-key">주식</span>
+          <span class="port-calc" id="port-expert-stock">-</span>
+        </div>
+        <div class="port-cell">
+          <span class="port-cell-key">주식</span>
+          <span class="port-calc" id="port-my-stock">-</span>
+        </div>
+
+        <div class="port-cell port-cell-empty"><span class="port-cell-key">-</span><span>-</span></div>
+        <div class="port-cell">
+          <span class="port-cell-key">마진</span>
+          <input class="port-input-blue" id="port-margin" type="text" value="5,000,000" oninput="onPortInput(this,'port-margin')" />
+        </div>
+
+        <div class="port-cell port-cell-empty"><span class="port-cell-key">-</span><span>-</span></div>
+        <div class="port-cell port-cell-highlight">
+          <span class="port-cell-key">실투자금</span>
+          <span class="port-calc" id="port-my-invest">-</span>
+        </div>
+      </div>
+
+      <div class="port-divider" style="margin:10px 0;"></div>
+
+      <div class="port-2col">
+        <div class="port-cell port-cell-empty"><span class="port-cell-key">-</span><span>-</span></div>
+        <div class="port-cell">
+          <span class="port-cell-key">시드머니</span>
+          <input class="port-input-blue" id="port-my-seed" type="text" placeholder="0" oninput="onPortInput(this,'port-my-seed')" />
+        </div>
+
+        <div class="port-cell port-cell-empty"><span class="port-cell-key">-</span><span>-</span></div>
+        <div class="port-cell port-cell-highlight">
+          <span class="port-cell-key">자유종목</span>
+          <span class="port-calc" id="port-free">-</span>
+        </div>
+      </div>
+
     </div>
   </div>
 
@@ -607,8 +740,91 @@ tr.drag-over { border-top: 2px solid #00e676; }
 
 <script>
 // ══════════════════════════════════
-// TAB SWITCHING
+// PORTFOLIO PANEL
 // ══════════════════════════════════
+const PORT_KEY = 'port-data-v1';
+
+function onPortInput(el, id) {
+  const raw = el.value.replace(/[^0-9]/g, '');
+  const num = parseInt(raw) || 0;
+  el.value = num ? num.toLocaleString('ko-KR') : '';
+  calcPort();
+}
+
+function getPortVal(id) {
+  const el = document.getElementById(id);
+  if (!el) return 0;
+  return parseInt(el.value.replace(/[^0-9]/g, '')) || 0;
+}
+
+function togglePort() {
+  const body = document.getElementById('portBody');
+  const chevron = document.getElementById('portChevron');
+  const isHidden = body.style.display === 'none';
+  body.style.display = isHidden ? 'block' : 'none';
+  chevron.classList.toggle('open', isHidden);
+}
+
+function fmt(n) {
+  if (isNaN(n) || n === null) return '-';
+  return Math.round(n).toLocaleString('ko-KR');
+}
+
+function calcPort() {
+  const ratio = parseFloat(document.getElementById('ratioInput').value) || 20;
+  document.getElementById('port-ratio-display').textContent = ratio;
+
+  const expertTotal = getPortVal('port-expert-total');
+  const expertCash  = getPortVal('port-expert-cash');
+  const margin      = getPortVal('port-margin');
+  const seed        = getPortVal('port-my-seed');
+
+  const expertStock = expertTotal - expertCash;
+  const myTotal     = expertTotal / ratio;
+  const myCash      = expertCash / ratio;
+  const myStock     = expertStock / ratio;
+  const myInvest    = myStock + margin;
+  const free        = seed - myInvest;
+
+  document.getElementById('port-expert-stock').textContent = fmt(expertStock);
+  document.getElementById('port-my-total').textContent     = fmt(myTotal);
+  document.getElementById('port-my-cash').textContent      = fmt(myCash);
+  document.getElementById('port-my-stock').textContent     = fmt(myStock);
+  document.getElementById('port-my-invest').textContent    = fmt(myInvest);
+  document.getElementById('port-free').textContent         = fmt(free);
+  document.getElementById('port-free').style.color = free < 0 ? '#ff4444' : '#00e676';
+
+  savePortData();
+}
+
+function savePortData() {
+  const data = {
+    expertTotal: document.getElementById('port-expert-total').value,
+    expertCash:  document.getElementById('port-expert-cash').value,
+    margin:      document.getElementById('port-margin').value,
+    seed:        document.getElementById('port-my-seed').value,
+  };
+  localStorage.setItem(PORT_KEY, JSON.stringify(data));
+}
+
+function loadPortData() {
+  try {
+    const data = JSON.parse(localStorage.getItem(PORT_KEY));
+    if (!data) return;
+    const setFmt = (id, val) => {
+      if (!val) return;
+      const num = parseInt(String(val).replace(/[^0-9]/g, '')) || 0;
+      document.getElementById(id).value = num ? num.toLocaleString('ko-KR') : '';
+    };
+    setFmt('port-expert-total', data.expertTotal);
+    setFmt('port-expert-cash', data.expertCash);
+    setFmt('port-margin', data.margin);
+    setFmt('port-my-seed', data.seed);
+    calcPort();
+  } catch(e) {}
+}
+
+
 function switchTab(tab) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -676,7 +892,7 @@ function renderTable() {
   }
   tbody.innerHTML = stocks.map(s => {
     const diff = calcDiff(s);
-    const diffClass = (diff > -1 && diff < 1) ? 'ratio-zero' : diff > 0 ? 'ratio-pos' : 'ratio-neg';
+    const diffClass = (diff > -1 && diff <= 0) ? 'ratio-zero' : diff > 0 ? 'ratio-pos' : 'ratio-neg';
     const diffText = diff > 0 ? `+${diff}` : `${diff}`;
     return `<tr id="row-${s.id}" draggable="true" data-id="${s.id}">
       <td style="padding:8px 6px;"><span class="drag-handle" title="드래그하여 순서 변경">⬍</span></td>
@@ -1059,6 +1275,7 @@ if ('serviceWorker' in navigator) {
 // ══════════════════════════════════
 stLoadData();
 render();
+loadPortData();
 </script>
 </body>
 </html>
