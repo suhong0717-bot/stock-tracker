@@ -469,6 +469,12 @@ tr.drag-over { border-top: 2px solid #00e676; }
      PAGE 1: STOCK TRACKER
 ══════════════════════════════════ -->
 <div class="page active" id="page-stock">
+
+  <!-- Undo/Redo 버튼 -->
+  <div style="position:fixed;bottom:80px;right:16px;display:flex;flex-direction:column;gap:6px;z-index:500;">
+    <button id="btn-undo" onclick="undo()" style="width:36px;height:36px;border-radius:50%;background:rgba(88,180,255,0.25);border:1px solid rgba(88,180,255,0.5);color:#58b4ff;font-size:18px;cursor:pointer;opacity:0.3;backdrop-filter:blur(4px);">⟲</button>
+    <button id="btn-redo" onclick="redo()" style="width:36px;height:36px;border-radius:50%;background:rgba(255,128,171,0.25);border:1px solid rgba(255,128,171,0.5);color:#ff80ab;font-size:18px;cursor:pointer;opacity:0.3;backdrop-filter:blur(4px);">⟳</button>
+  </div>
 <div class="st-wrap">
 
   <div class="st-header">
@@ -896,9 +902,13 @@ function renderTable() {
     const diffText = diff > 0 ? `+${diff}` : `${diff}`;
     return `<tr id="row-${s.id}" draggable="true" data-id="${s.id}">
       <td style="padding:8px 6px;"><span class="drag-handle" title="드래그하여 순서 변경">⬍</span></td>
-      <td class="stock-name" onclick="editName(${s.id})">${s.name}</td>
+      <td class="stock-name" onclick="editName(${s.id},this)" style="${s.pink ? 'color:#ff80ab;' : ''}">${s.name}</td>
       <td class="expert-qty"><input class="inline-input" type="number" value="${s.expertQty}" onchange="updateExpert(${s.id}, this.value)" style="color:#ffd740;"></td>
-      <td><input class="inline-input" type="number" value="${s.myQty}" onchange="updateMyQty(${s.id}, this.value)" style="color:#00e676;"></td>
+      <td style="white-space:nowrap;">
+        <input class="inline-input" type="number" value="${s.myQty}" onchange="updateMyQty(${s.id}, this.value)" style="color:#00e676;width:40px;text-align:center;">
+        <button onclick="adjustMyQty(${s.id},1)" style="background:none;border:1px solid #2a3a4a;color:#5a6a7a;width:20px;height:20px;border-radius:4px;cursor:pointer;font-size:12px;line-height:1;padding:0;margin-left:4px;">+</button>
+        <button onclick="adjustMyQty(${s.id},-1)" style="background:none;border:1px solid #2a3a4a;color:#5a6a7a;width:20px;height:20px;border-radius:4px;cursor:pointer;font-size:12px;line-height:1;padding:0;margin-left:2px;">−</button>
+      </td>
       <td class="${diffClass}" style="font-weight:700;">${diff === 0 ? '0' : diffText}</td>
       <td><button class="btn-del" onclick="deleteStock(${s.id})">✕</button></td>
     </tr>`;
@@ -1010,6 +1020,7 @@ function executeTrade(type) {
   if (!stockId || isNaN(qty) || qty <= 0) { showStToast('종목과 수량을 올바르게 입력해주세요.', true); return; }
   const stock = stocks.find(s => s.id === stockId);
   if (!stock) return;
+  saveHistory();
   const oldExpert = stock.expertQty;
   if (type === 'buy') { stock.expertQty += qty; }
   else {
@@ -1030,15 +1041,112 @@ function updateExpert(id, val) {
   const n = parseFloat(val); if (isNaN(n) || n < 0) return;
   stock.expertQty = n; renderTable(); stSaveData();
 }
+function adjustMyQty(id, delta) {
+  const stock = stocks.find(s => s.id === id);
+  if (!stock) return;
+  saveHistory();
+  stock.myQty = Math.max(0, stock.myQty + delta);
+  renderTable(); stSaveData();
+}
+
 function updateMyQty(id, val) {
   const stock = stocks.find(s => s.id === id); if (!stock) return;
   const n = parseFloat(val); if (isNaN(n) || n < 0) return;
+  saveHistory();
   stock.myQty = n; renderTable(); stSaveData();
 }
-function editName(id) {
-  const stock = stocks.find(s => s.id === id); if (!stock) return;
-  const newName = prompt('종목명 수정:', stock.name);
-  if (newName && newName.trim()) { stock.name = newName.trim(); render(); }
+// ── UNDO/REDO ────────────────────────────────────────────────────────
+const MAX_HISTORY = 50;
+let history = [];
+let historyIdx = -1;
+
+function saveHistory() {
+  const state = JSON.stringify(stocks.map(s => ({ id: s.id, expertQty: s.expertQty, myQty: s.myQty, name: s.name, pink: s.pink })));
+  history = history.slice(0, historyIdx + 1);
+  history.push(state);
+  if (history.length > MAX_HISTORY) history.shift();
+  historyIdx = history.length - 1;
+  updateUndoRedo();
+}
+
+function undo() {
+  if (historyIdx <= 0) return;
+  historyIdx--;
+  const state = JSON.parse(history[historyIdx]);
+  state.forEach(s => {
+    const stock = stocks.find(x => x.id === s.id);
+    if (stock) { stock.expertQty = s.expertQty; stock.myQty = s.myQty; stock.name = s.name; stock.pink = s.pink; }
+  });
+  renderTable(); stSaveData(); updateUndoRedo();
+}
+
+function redo() {
+  if (historyIdx >= history.length - 1) return;
+  historyIdx++;
+  const state = JSON.parse(history[historyIdx]);
+  state.forEach(s => {
+    const stock = stocks.find(x => x.id === s.id);
+    if (stock) { stock.expertQty = s.expertQty; stock.myQty = s.myQty; stock.name = s.name; stock.pink = s.pink; }
+  });
+  renderTable(); stSaveData(); updateUndoRedo();
+}
+
+function updateUndoRedo() {
+  const u = document.getElementById('btn-undo');
+  const r = document.getElementById('btn-redo');
+  if (u) u.style.opacity = historyIdx <= 0 ? '0.3' : '0.7';
+  if (r) r.style.opacity = historyIdx >= history.length - 1 ? '0.3' : '0.7';
+}
+
+// ── STOCK NAME POPUP ─────────────────────────────────────────────────
+function editName(id, el) {
+  const existing = document.getElementById('name-popup');
+  if (existing) { existing.remove(); if (existing.dataset.id == id) return; }
+
+  const stock = stocks.find(s => s.id === id);
+  if (!stock) return;
+
+  const popup = document.createElement('div');
+  popup.id = 'name-popup';
+  popup.dataset.id = id;
+  popup.style.cssText = `
+    position:fixed; background:#0d1117; border:1px solid #2a3a4a;
+    border-radius:8px; padding:8px 10px; z-index:9999;
+    display:flex; align-items:center;
+    box-shadow:0 4px 16px rgba(0,0,0,0.5);
+  `;
+  popup.innerHTML = `<input type="checkbox" id="pink-check-${id}" ${stock.pink ? 'checked' : ''} style="width:16px;height:16px;accent-color:#ff80ab;cursor:pointer;">`;
+
+  document.body.appendChild(popup);
+
+  // 위치 계산 함수
+  function positionPopup() {
+    const rect = el.getBoundingClientRect();
+    popup.style.top = (rect.bottom + 4) + 'px';
+    popup.style.left = Math.max(8, rect.left) + 'px';
+  }
+  positionPopup();
+
+  // 스크롤 따라가기
+  const scrollEl = document.querySelector('.page.active') || window;
+  scrollEl.addEventListener('scroll', positionPopup);
+
+  document.getElementById(`pink-check-${id}`).addEventListener('change', function() {
+    stock.pink = this.checked;
+    renderTable(); stSaveData();
+    scrollEl.removeEventListener('scroll', positionPopup);
+    popup.remove();
+  });
+
+  setTimeout(() => {
+    document.addEventListener('click', function handler(e) {
+      if (!popup.contains(e.target) && e.target !== el) {
+        scrollEl.removeEventListener('scroll', positionPopup);
+        popup.remove();
+        document.removeEventListener('click', handler);
+      }
+    });
+  }, 10);
 }
 function openAddModal() { document.getElementById('stModalOverlay').classList.remove('hidden'); document.getElementById('newStockName').focus(); }
 function closeAddModal() {
@@ -1276,6 +1384,8 @@ if ('serviceWorker' in navigator) {
 stLoadData();
 render();
 loadPortData();
+saveHistory(); // 초기 상태 저장
+updateUndoRedo();
 </script>
 </body>
 </html>
