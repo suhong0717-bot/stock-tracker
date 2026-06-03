@@ -1163,7 +1163,7 @@ function addStock() {
 }
 function updateRatio() {
   const v = parseInt(document.getElementById('ratioInput').value);
-  if (v && v > 0) { RATIO = v; render(); }
+  if (v && v > 0) { RATIO = v; render(); calcPort(); }
 }
 
 // delete + undo
