@@ -1254,7 +1254,9 @@ function renderAll() {
   const chipMap={debt:'chip-debt',invest:'chip-invest',lock:'chip-lock',house:'chip-house'};
   appData.groups.forEach(g=>{const el=document.getElementById(chipMap[g.type]||'chip-'+g.type);if(el){const v=netMode==='eval'?evalTotals[g.id]:totals[g.id];el.textContent=(g.type==='debt'?'− ':'')+fmtAbs(v);}});
   const container=document.getElementById('cards-container'); container.innerHTML='';
-  appData.groups.forEach((g)=>{ container.appendChild(buildCard(g,totals[g.id],evalTotals[g.id])); });
+  const ORDER = ['invest', 'lock', 'house', 'debt'];
+  const sorted = ORDER.map(t => appData.groups.find(g => g.type === t)).filter(Boolean);
+  sorted.forEach((g) => { container.appendChild(buildCard(g, totals[g.id], evalTotals[g.id])); });
   const d=new Date(); document.getElementById('today-date').textContent=`${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')}`;
   const lu=new Date(appData.lastUpdated); document.getElementById('footer-updated').textContent=`마지막 수정: ${lu.getFullYear()}.${String(lu.getMonth()+1).padStart(2,'0')}.${String(lu.getDate()).padStart(2,'0')} ${String(lu.getHours()).padStart(2,'0')}:${String(lu.getMinutes()).padStart(2,'0')}`;
 }
