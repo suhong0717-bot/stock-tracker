@@ -484,7 +484,7 @@ tr.drag-over { border-top: 2px solid #00e676; }
     </div>
     <div style="display:flex; flex-direction:column; align-items:flex-end; gap:6px;">
       <div class="ratio-badge">
-        1/<input id="ratioInput" type="number" min="1" max="100" value="20"
+        1/<input id="ratioInput" type="number" min="1" max="100" value="15"
           style="background:transparent;border:none;border-bottom:1px solid #00a854;color:#00e676;font-family:'JetBrains Mono',monospace;font-size:13px;width:36px;text-align:center;outline:none;"
           oninput="updateRatio()">
         <span>팔로우 비율</span>
@@ -802,7 +802,14 @@ function savePortData() {
 function loadPortData() {
   try {
     const data = JSON.parse(localStorage.getItem(PORT_KEY));
-    if (!data) return;
+    if (!data) {
+      // 디폴트값 설정
+      document.getElementById('port-expert-total').value = '1,990,768,364';
+      document.getElementById('port-expert-cash').value = '278,596,876';
+      document.getElementById('port-my-seed').value = '108,385,064';
+      calcPort();
+      return;
+    }
     const setFmt = (id, val) => {
       if (!val) return;
       const num = parseInt(String(val).replace(/[^0-9]/g, '')) || 0;
@@ -828,29 +835,29 @@ function switchTab(tab) {
 // STOCK TRACKER
 // ══════════════════════════════════
 const ST_KEY = 'stock-tracker-data';
-let RATIO = 20;
+let RATIO = 15;
 let nextId = 21;
 let stocks = [
-  { id: 1,  name: 'AMD',            expertQty: 186, myQty: 10 },
-  { id: 2,  name: '크레도',          expertQty: 430, myQty: 22 },
-  { id: 3,  name: '엔비디아',        expertQty: 345, myQty: 18 },
-  { id: 4,  name: '샌디스크',        expertQty: 48,  myQty: 3  },
-  { id: 5,  name: '마이크론',        expertQty: 90,  myQty: 5  },
-  { id: 6,  name: '마벨 테크놀로지', expertQty: 344, myQty: 18 },
-  { id: 7,  name: '버티브',          expertQty: 188, myQty: 10 },
-  { id: 8,  name: 'GE버노바',        expertQty: 50,  myQty: 3  },
-  { id: 9,  name: '블룸 에너지',     expertQty: 180, myQty: 9  },
-  { id: 10, name: '하이닉스',        expertQty: 38,  myQty: 2  },
-  { id: 11, name: 'ARM',            expertQty: 180, myQty: 9  },
-  { id: 12, name: 'AAOI',           expertQty: 254, myQty: 13 },
-  { id: 13, name: '루멘텀',          expertQty: 50,  myQty: 3  },
-  { id: 14, name: '셀레스티카',      expertQty: 105, myQty: 6  },
-  { id: 15, name: '브로드컴',        expertQty: 98,  myQty: 5  },
-  { id: 16, name: '웨스턴 디지털',   expertQty: 88,  myQty: 5  },
-  { id: 17, name: '코히런트',        expertQty: 100, myQty: 5  },
-  { id: 18, name: '삼성전자',        expertQty: 180, myQty: 9  },
-  { id: 19, name: 'TSMC ADR',       expertQty: 70,  myQty: 4  },
-  { id: 20, name: '델 테크놀로지',   expertQty: 100, myQty: 5  },
+  { id: 1,  name: '샌디스크',        expertQty: 7777, myQty: 4,  pink: true  },
+  { id: 2,  name: '마이크론',        expertQty: 114,  myQty: 4,  pink: true  },
+  { id: 3,  name: '마벨 테크놀로지', expertQty: 344,  myQty: 23, pink: true  },
+  { id: 4,  name: '하이닉스',        expertQty: 56,   myQty: 4,  pink: false },
+  { id: 5,  name: '루멘텀',          expertQty: 88,   myQty: 3,  pink: true  },
+  { id: 6,  name: 'AMD',            expertQty: 148,  myQty: 10, pink: true  },
+  { id: 7,  name: '크레도',          expertQty: 304,  myQty: 21, pink: true  },
+  { id: 8,  name: 'ARM',            expertQty: 180,  myQty: 12, pink: false },
+  { id: 9,  name: '코히런트',        expertQty: 138,  myQty: 7,  pink: false },
+  { id: 10, name: '블룸 에너지',     expertQty: 180,  myQty: 12, pink: false },
+  { id: 11, name: '엔비디아',        expertQty: 219,  myQty: 15, pink: true  },
+  { id: 12, name: '버티브',          expertQty: 150,  myQty: 10, pink: false },
+  { id: 13, name: '웨스턴 디지털',   expertQty: 88,   myQty: 6,  pink: false },
+  { id: 14, name: 'AAOI',           expertQty: 254,  myQty: 17, pink: false },
+  { id: 15, name: '셀레스티카',      expertQty: 105,  myQty: 5,  pink: true  },
+  { id: 16, name: '델 테크놀로지',   expertQty: 100,  myQty: 5,  pink: true  },
+  { id: 17, name: '삼성전자',        expertQty: 180,  myQty: 12, pink: false },
+  { id: 18, name: '브로드컴',        expertQty: 98,   myQty: 7,  pink: true  },
+  { id: 19, name: 'TSMC ADR',       expertQty: 70,   myQty: 5,  pink: true  },
+  { id: 20, name: 'GE버노바',        expertQty: 22,   myQty: 4,  pink: false },
 ];
 
 function stSaveData() {
@@ -882,12 +889,19 @@ function renderTable() {
     return;
   }
   tbody.innerHTML = stocks.map(s => {
-    const diff = calcDiff(s);
+    const diff = parseFloat(calcDiff(s).toFixed(1));
     const diffClass = (diff > -1 && diff <= 0) ? 'ratio-zero' : diff > 0 ? 'ratio-pos' : 'ratio-neg';
-    const diffText = diff > 0 ? `+${diff}` : `${diff}`;
+    const diffText = diff > 0 ? `+${diff.toFixed(1)}` : `${diff.toFixed(1)}`;
     return `<tr id="row-${s.id}" draggable="true" data-id="${s.id}">
       <td style="padding:8px 6px;"><span class="drag-handle" title="드래그하여 순서 변경">⬍</span></td>
-      <td class="stock-name" onclick="editName(${s.id},this)" style="${s.pink ? 'color:#ff80ab;' : ''}">${s.name}</td>
+      <td class="stock-name" 
+        onclick="editName(${s.id},this)" 
+        style="${s.pink ? 'color:#ff80ab;' : ''}"
+        oncontextmenu="event.preventDefault();confirmDeleteStock(${s.id},this);"
+        ontouchstart="startLongPress(${s.id},this)" 
+        ontouchend="cancelLongPress()" 
+        ontouchmove="cancelLongPress()"
+      >${s.name}</td>
       <td class="expert-qty"><input class="inline-input" type="number" value="${s.expertQty}" onchange="updateExpert(${s.id}, this.value)" style="color:#ffd740;"></td>
       <td style="white-space:nowrap;">
         <input class="inline-input" type="number" value="${s.myQty}" onchange="updateMyQty(${s.id}, this.value)" style="color:#00e676;width:40px;text-align:center;">
@@ -895,7 +909,6 @@ function renderTable() {
         <button onclick="adjustMyQty(${s.id},-1)" style="background:none;border:1px solid #2a3a4a;color:#5a6a7a;width:20px;height:20px;border-radius:4px;cursor:pointer;font-size:12px;line-height:1;padding:0;margin-left:2px;">−</button>
       </td>
       <td class="${diffClass}" style="font-weight:700;">${diff === 0 ? '0' : diffText}</td>
-      <td><button class="btn-del" onclick="deleteStock(${s.id})">✕</button></td>
     </tr>`;
   }).join('');
   initDrag();
@@ -1151,11 +1164,63 @@ function updateRatio() {
   if (v && v > 0) { RATIO = v; render(); calcPort(); }
 }
 
-// delete + undo
-let undoStock = null, undoTimer = null;
+// ── Long Press Delete ─────────────────────────────────────────────────
+let longPressTimer = null;
+
+function startLongPress(id, el) {
+  longPressTimer = setTimeout(() => confirmDeleteStock(id, el), 600);
+}
+
+function cancelLongPress() {
+  clearTimeout(longPressTimer);
+}
+
+function confirmDeleteStock(id, el) {
+  const stock = stocks.find(s => s.id === id);
+  if (!stock) return;
+
+  const existing = document.getElementById('delete-popup');
+  if (existing) existing.remove();
+
+  const popup = document.createElement('div');
+  popup.id = 'delete-popup';
+  popup.style.cssText = `
+    position:fixed; background:#0d1117; border:1px solid #ff5252;
+    border-radius:10px; padding:12px 16px; z-index:9999;
+    box-shadow:0 4px 16px rgba(0,0,0,0.6);
+    font-family:'JetBrains Mono',monospace;
+  `;
+  popup.innerHTML = `
+    <div style="font-size:12px;color:#c9d1d9;margin-bottom:10px;"><strong>${stock.name}</strong> 삭제할까요?</div>
+    <div style="display:flex;gap:8px;">
+      <button onclick="deleteStock(${id});document.getElementById('delete-popup').remove();"
+        style="flex:1;padding:6px;background:#ff5252;border:none;border-radius:6px;color:white;font-family:'JetBrains Mono',monospace;font-size:12px;cursor:pointer;">삭제</button>
+      <button onclick="document.getElementById('delete-popup').remove();"
+        style="flex:1;padding:6px;background:#1e2a38;border:1px solid #2a3a4a;border-radius:6px;color:#c9d1d9;font-family:'JetBrains Mono',monospace;font-size:12px;cursor:pointer;">취소</button>
+    </div>
+  `;
+  document.body.appendChild(popup);
+
+  const rect = el.getBoundingClientRect();
+  popup.style.left = Math.max(8, rect.left) + 'px';
+  popup.style.top = (rect.bottom + 6) + 'px';
+
+  setTimeout(() => {
+    document.addEventListener('click', function handler(e) {
+      if (!popup.contains(e.target)) { popup.remove(); document.removeEventListener('click', handler); }
+    });
+  }, 10);
+}
+
+let undoStock = null, undoStockIdx = null, undoTimer = null;
 function deleteStock(id) {
-  const stock = stocks.find(s => s.id === id); if (!stock) return;
-  stocks = stocks.filter(s => s.id !== id); render(); showUndoStToast(stock);
+  const idx = stocks.findIndex(s => s.id === id);
+  const stock = stocks[idx];
+  if (!stock) return;
+  saveHistory();
+  undoStockIdx = idx;
+  stocks = stocks.filter(s => s.id !== id);
+  render(); showUndoStToast(stock);
 }
 function showUndoStToast(stock) {
   undoStock = stock;
@@ -1165,16 +1230,18 @@ function showUndoStToast(stock) {
   clearTimeout(undoTimer);
   bar.className = 'toast-bar'; void bar.offsetWidth; bar.className = 'toast-bar running';
   showStToast(`${stock.name} 삭제됨`);
-  undoTimer = setTimeout(() => { btn.style.display='none'; undoStock=null; document.getElementById('stToast').className='st-toast'; }, 5000);
+  undoTimer = setTimeout(() => { btn.style.display='none'; undoStock=null; undoStockIdx=null; document.getElementById('stToast').className='st-toast'; }, 5000);
 }
 function undoDelete() {
   if (!undoStock) return;
   clearTimeout(undoTimer);
   const restored = undoStock;
-  stocks.push(restored); stocks.sort((a,b)=>a.id-b.id);
+  const idx = undoStockIdx !== null ? undoStockIdx : stocks.length;
+  stocks.splice(idx, 0, restored);
   document.getElementById('undoBtn').style.display='none';
   document.getElementById('stToast').className='st-toast';
-  undoStock = null; render(); showStToast('↩ '+restored.name+' 복구됨');
+  undoStock = null; undoStockIdx = null;
+  render(); showStToast('↩ '+restored.name+' 복구됨');
 }
 
 let stToastTimer;
@@ -1200,18 +1267,18 @@ const defaultData = {
   lastUpdated: new Date().toISOString(),
   groups: [
     { id:'invest', icon:'💸', label:'투자', type:'invest', items:[
-      { id:'i4', name:'농협주식', amount:4000, note:'싼타1000, 양도세300', full:null, eval:null, owner:'personal' },
-      { id:'i5', name:'주식보상', amount:700, note:'', full:null, eval:null, owner:'personal' },
-      { id:'i6', name:'부부ISA', amount:2200, note:'', full:null, eval:3100, owner:'couple' },
+      { id:'i4', name:'농협주식', amount:3700, note:'싼타1000, 양도세300', full:null, eval:13600, owner:'personal' },
+      { id:'i5', name:'주식보상', amount:700, note:'', full:null, eval:1500, owner:'personal' },
+      { id:'i6', name:'부부ISA💑', amount:1200, note:'', full:null, eval:1750, owner:'couple' },
     ]},
     { id:'lock', icon:'🔒', label:'고정자산', type:'lock', items:[
-      { id:'i7', name:'연금저축펀드', amount:1800, note:'600-회사 넣기 26년', full:null, eval:null, owner:'personal' },
-      { id:'i8', name:'회사연금저축', amount:1070, note:'', full:null, eval:null, owner:'personal' },
-      { id:'i9', name:'농협청약', amount:1120, note:'10+10 / 22일', full:null, owner:'personal' },
+      { id:'i7', name:'연금저축펀드', amount:1800, note:'600-회사 넣기 26년', full:null, eval:3600, owner:'personal' },
+      { id:'i8', name:'회사연금저축', amount:1100, note:'', full:null, eval:2700, owner:'personal' },
+      { id:'i9', name:'농협청약', amount:1120, note:'10+10 / 22일', full:null, eval:null, owner:'personal' },
     ]},
     { id:'house', icon:'🏠', label:'부동산', type:'house', items:[
       { id:'i10', name:'주택자금', amount:6500, note:'', full:null, owner:'personal' },
-      { id:'i11', name:'대출상환', amount:290, note:'', full:null, owner:'couple' },
+      { id:'i11', name:'대출상환💑', amount:300, note:'', full:null, owner:'couple' },
     ]},
     { id:'debt', icon:'🚨', label:'부채', type:'debt', items:[
       { id:'i1', name:'엄마주식대출', amount:-3000, note:'', full:null, owner:'personal' },
