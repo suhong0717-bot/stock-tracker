@@ -528,22 +528,12 @@ tr.drag-over { border-top: 2px solid #00e676; }
           <span class="port-cell-key">주식</span>
           <span class="port-calc" id="port-expert-stock">-</span>
         </div>
-        <div class="port-cell">
-          <span class="port-cell-key">주식</span>
+        <div class="port-cell port-cell-highlight">
+          <span class="port-cell-key">실투자금</span>
           <span class="port-calc" id="port-my-stock">-</span>
         </div>
 
         <div class="port-cell port-cell-empty"><span class="port-cell-key">-</span><span>-</span></div>
-        <div class="port-cell">
-          <span class="port-cell-key">마진</span>
-          <input class="port-input-blue" id="port-margin" type="text" value="5,000,000" oninput="onPortInput(this,'port-margin')" />
-        </div>
-
-        <div class="port-cell port-cell-empty"><span class="port-cell-key">-</span><span>-</span></div>
-        <div class="port-cell port-cell-highlight">
-          <span class="port-cell-key">실투자금</span>
-          <span class="port-calc" id="port-my-invest">-</span>
-        </div>
       </div>
 
       <div class="port-divider" style="margin:10px 0;"></div>
@@ -782,21 +772,18 @@ function calcPort() {
 
   const expertTotal = getPortVal('port-expert-total');
   const expertCash  = getPortVal('port-expert-cash');
-  const margin      = getPortVal('port-margin');
   const seed        = getPortVal('port-my-seed');
 
   const expertStock = expertTotal - expertCash;
   const myTotal     = expertTotal / ratio;
   const myCash      = expertCash / ratio;
   const myStock     = expertStock / ratio;
-  const myInvest    = myStock + margin;
-  const free        = seed - myInvest;
+  const free        = seed - myStock;
 
   document.getElementById('port-expert-stock').textContent = fmt(expertStock);
   document.getElementById('port-my-total').textContent     = fmt(myTotal);
   document.getElementById('port-my-cash').textContent      = fmt(myCash);
   document.getElementById('port-my-stock').textContent     = fmt(myStock);
-  document.getElementById('port-my-invest').textContent    = fmt(myInvest);
   document.getElementById('port-free').textContent         = fmt(free);
   document.getElementById('port-free').style.color = free < 0 ? '#ff4444' : '#00e676';
 
@@ -807,7 +794,6 @@ function savePortData() {
   const data = {
     expertTotal: document.getElementById('port-expert-total').value,
     expertCash:  document.getElementById('port-expert-cash').value,
-    margin:      document.getElementById('port-margin').value,
     seed:        document.getElementById('port-my-seed').value,
   };
   localStorage.setItem(PORT_KEY, JSON.stringify(data));
@@ -824,7 +810,6 @@ function loadPortData() {
     };
     setFmt('port-expert-total', data.expertTotal);
     setFmt('port-expert-cash', data.expertCash);
-    setFmt('port-margin', data.margin);
     setFmt('port-my-seed', data.seed);
     calcPort();
   } catch(e) {}
