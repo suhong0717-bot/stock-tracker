@@ -483,13 +483,15 @@ tr.drag-over { border-top: 2px solid #00e676; }
       <div class="sub">전문가 주식 팔로우 · 자동 비율 계산</div>
     </div>
     <div style="display:flex; flex-direction:column; align-items:flex-end; gap:6px;">
-      <div class="ratio-badge">
-        1/<input id="ratioInput" type="number" min="1" max="100" value="15"
-          style="background:transparent;border:none;border-bottom:1px solid #00a854;color:#00e676;font-family:'JetBrains Mono',monospace;font-size:13px;width:36px;text-align:center;outline:none;"
-          oninput="updateRatio()">
-        <span>팔로우 비율</span>
+      <div style="display:flex; align-items:center; gap:6px;">
+        <div class="ratio-badge">
+          1/<input id="ratioInput" type="number" min="1" max="100" value="15"
+            style="background:transparent;border:none;border-bottom:1px solid #00a854;color:#00e676;font-family:'JetBrains Mono',monospace;font-size:13px;width:28px;text-align:center;outline:none;"
+            oninput="updateRatio()">
+        </div>
+        <button onclick="setLastUpdate()" style="background:#1e2a38;border:1px solid #2a3a4a;color:#58b4ff;font-family:'JetBrains Mono',monospace;font-size:10px;padding:4px 8px;border-radius:6px;cursor:pointer;">업데이트</button>
       </div>
-      <div style="font-family:'JetBrains Mono',monospace; font-size:10px; color:#5a6a7a;">last update · 2026.06.06</div>
+      <div id="lastUpdateText" style="font-family:'JetBrains Mono',monospace; font-size:10px; color:#5a6a7a;">last update · 2026.06.06</div>
     </div>
   </div>
 
@@ -1159,6 +1161,15 @@ function addStock() {
   stocks.push({ id: nextId++, name, expertQty: qty, myQty: 0 });
   closeAddModal(); render(); showStToast(`${name} 추가됨`);
 }
+function setLastUpdate() {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, '0');
+  const d = String(now.getDate()).padStart(2, '0');
+  const dateStr = `${y}.${m}.${d}`;
+  document.getElementById('lastUpdateText').textContent = 'last update · ' + dateStr;
+}
+
 function updateRatio() {
   const v = parseInt(document.getElementById('ratioInput').value);
   if (v && v > 0) { RATIO = v; render(); calcPort(); }
