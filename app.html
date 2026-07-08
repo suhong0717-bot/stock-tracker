@@ -1168,6 +1168,12 @@ function setLastUpdate() {
   const d = String(now.getDate()).padStart(2, '0');
   const dateStr = `${y}.${m}.${d}`;
   document.getElementById('lastUpdateText').textContent = 'last update · ' + dateStr;
+  localStorage.setItem('last-update-date', dateStr);
+}
+
+function loadLastUpdate() {
+  const saved = localStorage.getItem('last-update-date');
+  if (saved) document.getElementById('lastUpdateText').textContent = 'last update · ' + saved;
 }
 
 function updateRatio() {
@@ -1451,6 +1457,7 @@ render();
 loadPortData();
 saveHistory(); // 초기 상태 저장
 updateUndoRedo();
+loadLastUpdate();
 </script>
 </body>
 </html>
