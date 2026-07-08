@@ -498,7 +498,7 @@ tr.drag-over { border-top: 2px solid #00e676; }
   <!-- 메모 패널 -->
   <div class="port-panel" id="memoPanel" style="margin-bottom:10px;">
     <div class="port-toggle" onclick="toggleMemo()">
-      <span class="port-toggle-label">✏️ 메모</span>
+      <span class="port-toggle-label">✏️ 메모 <span id="memoTitle" style="font-size:10px;color:#5a6a7a;font-weight:400;"></span></span>
       <span class="port-chevron" id="memoChevron">▼</span>
     </div>
     <div id="memoBody" style="display:none; border-top:1px solid #1e2a38; padding:10px 14px;">
@@ -1188,31 +1188,36 @@ function getDateStamp() {
   return `${now.getFullYear()}.${String(now.getMonth()+1).padStart(2,'0')}.${String(now.getDate()).padStart(2,'0')}ver`;
 }
 
+function updateMemoTitle(firstLine) {
+  const el = document.getElementById('memoTitle');
+  if (!el) return;
+  // 날짜와 내용 분리
+  const match = firstLine.match(/^(\d{4}\.\d{2}\.\d{2}ver)\s*-?\s*(.*)/);
+  if (match) {
+    el.textContent = `· ${match[1]} · ${match[2] || ''}`;
+  } else {
+    el.textContent = firstLine ? `· ${firstLine}` : '';
+  }
+}
+
 function saveMemo() {
   const textarea = document.getElementById('memoText');
-  const stamp = getDateStamp();
-  const lines = textarea.value.split('\n');
-  if (lines[0] && lines[0].match(/^\d{4}\.\d{2}\.\d{2}ver/)) {
-    lines[0] = stamp + ' -' + lines[0].replace(/^\d{4}\.\d{2}\.\d{2}ver\s*-?/, '');
-  } else {
-    lines.unshift(stamp + ' -');
-  }
-  const newVal = lines.join('\n');
-  const cursorPos = textarea.selectionStart + (newVal.length - textarea.value.length);
-  textarea.value = newVal;
-  textarea.setSelectionRange(cursorPos, cursorPos);
-  localStorage.setItem('tracker-memo', newVal);
+  localStorage.setItem('tracker-memo', textarea.value);
 }
 
 function loadMemo() {
   const saved = localStorage.getItem('tracker-memo');
   const textarea = document.getElementById('memoText');
-  if (saved) {
-    textarea.value = saved;
+  textarea.value = saved || '';
+
+  // 타이틀은 별도 저장된 값 사용
+  const titleSaved = localStorage.getItem('tracker-memo-title');
+  if (titleSaved) {
+    updateMemoTitle(titleSaved);
   } else {
     const initial = getDateStamp() + ' - 메모장 생성';
-    textarea.value = initial + '\n';
-    localStorage.setItem('tracker-memo', textarea.value);
+    localStorage.setItem('tracker-memo-title', initial);
+    updateMemoTitle(initial);
   }
 }
 
