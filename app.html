@@ -1183,13 +1183,37 @@ function toggleMemo() {
   chevron.classList.toggle('open', isHidden);
 }
 
+function getDateStamp() {
+  const now = new Date();
+  return `${now.getFullYear()}.${String(now.getMonth()+1).padStart(2,'0')}.${String(now.getDate()).padStart(2,'0')}ver`;
+}
+
 function saveMemo() {
-  localStorage.setItem('tracker-memo', document.getElementById('memoText').value);
+  const textarea = document.getElementById('memoText');
+  const stamp = getDateStamp();
+  const lines = textarea.value.split('\n');
+  if (lines[0] && lines[0].match(/^\d{4}\.\d{2}\.\d{2}ver/)) {
+    lines[0] = stamp + ' -' + lines[0].replace(/^\d{4}\.\d{2}\.\d{2}ver\s*-?/, '');
+  } else {
+    lines.unshift(stamp + ' -');
+  }
+  const newVal = lines.join('\n');
+  const cursorPos = textarea.selectionStart + (newVal.length - textarea.value.length);
+  textarea.value = newVal;
+  textarea.setSelectionRange(cursorPos, cursorPos);
+  localStorage.setItem('tracker-memo', newVal);
 }
 
 function loadMemo() {
   const saved = localStorage.getItem('tracker-memo');
-  if (saved) document.getElementById('memoText').value = saved;
+  const textarea = document.getElementById('memoText');
+  if (saved) {
+    textarea.value = saved;
+  } else {
+    const initial = getDateStamp() + ' - 메모장 생성';
+    textarea.value = initial + '\n';
+    localStorage.setItem('tracker-memo', textarea.value);
+  }
 }
 
 function setLastUpdate() {
