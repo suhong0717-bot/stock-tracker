@@ -495,6 +495,20 @@ tr.drag-over { border-top: 2px solid #00e676; }
     </div>
   </div>
 
+  <!-- 메모 패널 -->
+  <div class="port-panel" id="memoPanel" style="margin-bottom:10px;">
+    <div class="port-toggle" onclick="toggleMemo()">
+      <span class="port-toggle-label">✏️ 메모</span>
+      <span class="port-chevron" id="memoChevron">▼</span>
+    </div>
+    <div id="memoBody" style="display:none; border-top:1px solid #1e2a38; padding:10px 14px;">
+      <textarea id="memoText"
+        style="width:100%;min-height:120px;background:transparent;border:none;color:#c9d1d9;font-family:'JetBrains Mono',monospace;font-size:12px;resize:vertical;outline:none;line-height:1.6;"
+        placeholder="자유롭게 메모하세요..."
+        oninput="saveMemo()"></textarea>
+    </div>
+  </div>
+
   <!-- 포트폴리오 요약 패널 -->
   <div class="port-panel" id="portPanel">
     <div class="port-toggle" onclick="togglePort()">
@@ -1161,6 +1175,23 @@ function addStock() {
   stocks.push({ id: nextId++, name, expertQty: qty, myQty: 0 });
   closeAddModal(); render(); showStToast(`${name} 추가됨`);
 }
+function toggleMemo() {
+  const body = document.getElementById('memoBody');
+  const chevron = document.getElementById('memoChevron');
+  const isHidden = body.style.display === 'none';
+  body.style.display = isHidden ? 'block' : 'none';
+  chevron.classList.toggle('open', isHidden);
+}
+
+function saveMemo() {
+  localStorage.setItem('tracker-memo', document.getElementById('memoText').value);
+}
+
+function loadMemo() {
+  const saved = localStorage.getItem('tracker-memo');
+  if (saved) document.getElementById('memoText').value = saved;
+}
+
 function setLastUpdate() {
   const now = new Date();
   const y = now.getFullYear();
@@ -1455,9 +1486,10 @@ if ('serviceWorker' in navigator) {
 stLoadData();
 render();
 loadPortData();
-saveHistory(); // 초기 상태 저장
+saveHistory();
 updateUndoRedo();
 loadLastUpdate();
+loadMemo();
 </script>
 </body>
 </html>
