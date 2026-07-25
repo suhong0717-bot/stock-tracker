@@ -683,33 +683,31 @@ tr.drag-over { border-top: 2px solid #00e676; }
   <div class="st-header">
     <div class="st-header-left">
       <h1>SOXL TRACKER</h1>
-      <div class="sub">A/B 계좌 · 이동평균법 기준 · 최근 업데이트: <span id="sx-last-update">-</span></div>
+      <div class="sub">A/B 계좌 · 이동평균법 기준</div>
+    </div>
+    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;">
+      <button onclick="sxCheckSaved()" style="background:#1e2a38;border:1px solid #2a3a4a;color:#58b4ff;font-family:'JetBrains Mono',monospace;font-size:10px;padding:4px 8px;border-radius:6px;cursor:pointer;white-space:nowrap;">업데이트</button>
+      <div style="margin:0;font-size:12px;color:#5a6a7a;font-family:'JetBrains Mono',monospace;">최근 업데이트: <span id="sx-last-update">-</span></div>
     </div>
   </div>
 
   <div style="display:flex;gap:12px;margin-bottom:24px;flex-wrap:wrap;">
     <div class="trade-panel" style="flex:1;min-width:150px;border-left:3px solid #58b4ff;margin-bottom:0;display:block;">
-      <div style="font-size:11px;color:#5a6a7a;font-family:'JetBrains Mono',monospace;margin-bottom:6px;">A계좌 · 전체 매도 가정 누적손익</div>
+      <div style="font-size:11px;color:#5a6a7a;margin-bottom:6px;">
+        <span style="font-family:'JetBrains Mono',monospace;font-weight:700;color:#58b4ff;font-size:13px;letter-spacing:0.5px;">A계좌</span><br>
+        전체 매도 가정 누적손익
+      </div>
       <div id="sx-a-total" style="font-family:'JetBrains Mono',monospace;font-size:24px;font-weight:700;">-</div>
       <div style="font-size:11px;color:#5a6a7a;margin-top:4px;">현재 잔고 <span id="sx-a-balance"></span>주</div>
     </div>
     <div class="trade-panel" style="flex:1;min-width:150px;border-left:3px solid #ff80ab;margin-bottom:0;display:block;">
-      <div style="font-size:11px;color:#5a6a7a;font-family:'JetBrains Mono',monospace;margin-bottom:6px;">B계좌 · 전체 매도 가정 누적손익</div>
+      <div style="font-size:11px;color:#5a6a7a;margin-bottom:6px;">
+        <span style="font-family:'JetBrains Mono',monospace;font-weight:700;color:#ff80ab;font-size:13px;letter-spacing:0.5px;">B계좌</span><br>
+        전체 매도 가정 누적손익
+      </div>
       <div id="sx-b-total" style="font-family:'JetBrains Mono',monospace;font-size:24px;font-weight:700;">-</div>
       <div style="font-size:11px;color:#5a6a7a;margin-top:4px;">현재 잔고 <span id="sx-b-balance"></span>주</div>
     </div>
-  </div>
-
-  <div class="table-wrap" style="padding:16px;">
-    <h3 style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#5a6a7a;letter-spacing:1px;margin-bottom:12px;text-transform:uppercase;">잔고 수량 추이 (종가 연동)</h3>
-    <canvas id="sx-chart-balance" height="220"></canvas>
-    <div id="sx-legend-balance" style="margin-top:10px;text-align:center;"></div>
-  </div>
-
-  <div class="table-wrap" style="padding:16px;">
-    <h3 style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#5a6a7a;letter-spacing:1px;margin-bottom:12px;text-transform:uppercase;">전체 매도 가정 누적 실현손익</h3>
-    <canvas id="sx-chart-pnl" height="220"></canvas>
-    <div id="sx-legend-pnl" style="margin-top:10px;text-align:center;"></div>
   </div>
 
   <div class="trade-panel" style="display:block;">
@@ -745,12 +743,23 @@ tr.drag-over { border-top: 2px solid #00e676; }
       <div id="sx-form-error" style="color:#ff5252;font-size:12px;margin-bottom:8px;"></div>
       <div id="sx-form-success" style="color:#00e676;font-size:12px;margin-bottom:8px;"></div>
       <button class="btn-buy" onclick="sxAddEntry()" style="width:100%;">추가하기</button>
+      <div style="display:flex;justify-content:flex-end;align-items:center;gap:12px;margin-top:14px;flex-wrap:wrap;">
+        <span id="sx-delete-msg" style="color:#00e676;font-size:12px;"></span>
+        <button class="btn-add-stock" onclick="sxDeleteLast()">마지막 거래 삭제 (A/B 동시)</button>
+      </div>
     </div>
   </div>
 
-  <div style="display:flex;justify-content:flex-end;align-items:center;gap:12px;margin:16px 0;flex-wrap:wrap;">
-    <span id="sx-delete-msg" style="color:#00e676;font-size:12px;"></span>
-    <button class="btn-add-stock" onclick="sxDeleteLast()">마지막 거래 삭제 (A/B 동시)</button>
+  <div class="table-wrap" style="padding:16px;">
+    <h3 style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#5a6a7a;letter-spacing:1px;margin-bottom:12px;text-transform:uppercase;">잔고 수량 추이 (종가 연동)</h3>
+    <canvas id="sx-chart-balance" height="220"></canvas>
+    <div id="sx-legend-balance" style="margin-top:10px;text-align:center;"></div>
+  </div>
+
+  <div class="table-wrap" style="padding:16px;">
+    <h3 style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#5a6a7a;letter-spacing:1px;margin-bottom:12px;text-transform:uppercase;">전체 매도 가정 누적 실현손익</h3>
+    <canvas id="sx-chart-pnl" height="220"></canvas>
+    <div id="sx-legend-pnl" style="margin-top:10px;text-align:center;"></div>
   </div>
 
   <h3 style="font-family:'JetBrains Mono',monospace;color:#58b4ff;font-size:13px;margin-bottom:8px;position:relative;z-index:1;">A계좌 — 이동평균법 기준</h3>
@@ -1741,7 +1750,24 @@ function sxLoad() {
   try { const r = localStorage.getItem(SX_B_KEY); sxB = r ? JSON.parse(r) : JSON.parse(JSON.stringify(SX_SEED_B)); } catch (e) { sxB = JSON.parse(JSON.stringify(SX_SEED_B)); }
 }
 function sxSave() {
-  try { localStorage.setItem(SX_A_KEY, JSON.stringify(sxA)); localStorage.setItem(SX_B_KEY, JSON.stringify(sxB)); } catch (e) { /* storage unavailable */ }
+  try {
+    localStorage.setItem(SX_A_KEY, JSON.stringify(sxA));
+    localStorage.setItem(SX_B_KEY, JSON.stringify(sxB));
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+// 저장 재확인 + 확인한 날짜 기록 (팔로우 탭의 '업데이트' 버튼과 동일한 느낌)
+function sxCheckSaved() {
+  sxSave();
+  const now = new Date();
+  const y = now.getFullYear(), m = String(now.getMonth() + 1).padStart(2, '0'), d = String(now.getDate()).padStart(2, '0');
+  const dateStr = `${y}.${m}.${d}`;
+  try { localStorage.setItem('soxl-last-checked', dateStr); } catch (e) {}
+  const el = document.getElementById('sx-last-update');
+  if (el) el.textContent = dateStr;
 }
 function sxFmt(n) { if (n === null || n === undefined) return "-"; const s = n > 0 ? "+" : ""; return s + n.toFixed(2); }
 function sxFmtPlain(n) { if (n === null || n === undefined) return "-"; return n.toFixed(2); }
@@ -1765,7 +1791,7 @@ function sxNiceNum(v) {
 // series: [{ label, data: [...], color, dashed:false, axis:'left'|'right' }]
 const sxChartInfo = {};
 
-function sxDrawChart(canvasId, legendId, labels, series) {
+function sxDrawChart(canvasId, legendId, labels, series, opts) {
   const canvas = document.getElementById(canvasId);
   const wrap = canvas.parentElement;
   const cssWidth = wrap.clientWidth - 32; // padding of table-wrap
@@ -1785,7 +1811,8 @@ function sxDrawChart(canvasId, legendId, labels, series) {
 
   const leftVals = series.filter(s => s.axis !== 'right').flatMap(s => s.data);
   const rightVals = series.filter(s => s.axis === 'right').flatMap(s => s.data);
-  const [lMin, lMax] = sxRange(leftVals);
+  let [lMin, lMax] = sxRange(leftVals);
+  if (opts && opts.leftMin !== undefined && opts.leftMin !== null) lMin = opts.leftMin;
   const [rMin, rMax] = hasRight ? sxRange(rightVals) : [0, 1];
 
   function xPos(i) { return padL + (labels.length <= 1 ? plotW / 2 : (plotW * i / (labels.length - 1))); }
@@ -1816,31 +1843,43 @@ function sxDrawChart(canvasId, legendId, labels, series) {
       if (!info) return;
       const rect = canvas.getBoundingClientRect();
       const x = clientX - rect.left;
+      // 실제 그래프(플롯) 영역 밖이면 무시
+      if (x < info.padL || x > info.padL + info.plotW) {
+        sxSyncActive(null);
+        return;
+      }
       let idx = 0, minDist = Infinity;
       for (let i = 0; i < info.labels.length; i++) {
         const px = info.xPos(i);
         const d = Math.abs(px - x);
         if (d < minDist) { minDist = d; idx = i; }
       }
-      info.activeIdx = idx;
-      sxRedraw(canvasId);
-      sxShowTooltip(canvasId, idx);
+      sxSyncActive(idx);
     };
     canvas.addEventListener('mousedown', (e) => move(e.clientX));
     canvas.addEventListener('mousemove', (e) => { if (e.buttons === 1) move(e.clientX); });
     canvas.addEventListener('touchstart', (e) => { if (e.touches[0]) move(e.touches[0].clientX); }, { passive: true });
     canvas.addEventListener('touchmove', (e) => { if (e.touches[0]) move(e.touches[0].clientX); }, { passive: true });
-    const clear = () => {
-      const info = sxChartInfo[canvasId];
-      if (!info) return;
-      info.activeIdx = null;
-      sxRedraw(canvasId);
-      const tip = document.getElementById(canvasId + '-tooltip');
-      if (tip) tip.style.display = 'none';
-    };
-    canvas.addEventListener('mouseleave', clear);
-    canvas.addEventListener('touchend', () => { clearTimeout(canvas._sxLeaveTimer); canvas._sxLeaveTimer = setTimeout(clear, 3000); });
+    canvas.addEventListener('mouseleave', () => sxSyncActive(null));
+    canvas.addEventListener('touchend', () => { clearTimeout(canvas._sxLeaveTimer); canvas._sxLeaveTimer = setTimeout(() => sxSyncActive(null), 3000); });
   }
+}
+
+// 두 차트가 같은 날짜 축을 공유하므로, 한쪽을 터치하면 둘 다 같은 지점을 하이라이트
+const SX_LINKED_CHARTS = ['sx-chart-balance', 'sx-chart-pnl'];
+function sxSyncActive(idx) {
+  SX_LINKED_CHARTS.forEach(id => {
+    const info = sxChartInfo[id];
+    if (!info) return;
+    info.activeIdx = idx;
+    sxRedraw(id);
+    const tip = document.getElementById(id + '-tooltip');
+    if (idx === null || idx === undefined) {
+      if (tip) tip.style.display = 'none';
+    } else {
+      sxShowTooltip(id, idx);
+    }
+  });
 }
 
 function sxRedraw(canvasId) {
@@ -1964,11 +2003,12 @@ function renderSoxl() {
     { label: 'A계좌 잔고', data: rows.map(r => r.aBalance), color: '#58b4ff', axis: 'left' },
     { label: 'B계좌 잔고', data: rows.map(r => r.bBalance), color: '#ff80ab', axis: 'left' },
     { label: '종가', data: rows.map(r => r.close), color: '#ffd740', axis: 'right', dashed: true },
-  ]);
+  ], { leftMin: 0 });
 
   sxDrawChart('sx-chart-pnl', 'sx-legend-pnl', labels, [
     { label: 'A계좌', data: rows.map(r => r.aTotal), color: '#58b4ff', axis: 'left' },
     { label: 'B계좌', data: rows.map(r => r.bTotal), color: '#ff80ab', axis: 'left' },
+    { label: '종가', data: rows.map(r => r.close), color: '#ffd740', axis: 'right', dashed: true },
   ]);
 
   sxRenderTable(sxA, 'sx-a-tbody', rows, 'a');
