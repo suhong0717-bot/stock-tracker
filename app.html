@@ -1673,11 +1673,19 @@ function sxPostBalance(row) {
 function sxLastState(data) {
   if (!data || data.length === 0) return { balance: 0, avg: null, cum: 0 };
   const last = data[data.length - 1];
-  return {
-    balance: sxPostBalance(last),
-    avg: (last.avg !== null && last.avg !== undefined) ? last.avg : null,
-    cum: (last.cum !== null && last.cum !== undefined) ? last.cum : 0,
-  };
+  const balance = sxPostBalance(last);
+  // "거래 없음"인 날은 avg가 null로 저장되지만 포지션이 사라진 게 아니므로,
+  // 실제 마지막 매수/매도가 있었던 날까지 거슬러 올라가서 평단을 찾는다.
+  // 단, 중간에 잔고가 0이 된 지점(전량 청산)을 만나면 그 이전 평단은 무시한다.
+  let avg = null;
+  for (let i = data.length - 1; i >= 0; i--) {
+    const row = data[i];
+    const postBal = sxPostBalance(row);
+    if (row.avg !== null && row.avg !== undefined) { avg = row.avg; break; }
+    if (postBal === 0) { avg = null; break; }
+  }
+  const lastCum = (last.cum !== null && last.cum !== undefined) ? last.cum : 0;
+  return { balance, avg, cum: lastCum };
 }
 function sxComputeNewRow({ data, date, type, qty, close, trade }) {
   const prev = sxLastState(data);
