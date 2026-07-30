@@ -683,11 +683,28 @@ tr.drag-over { border-top: 2px solid #00e676; }
   <div class="st-header">
     <div class="st-header-left">
       <h1>SOXL TRACKER</h1>
-      <div class="sub">v3 · 자동 재계산 마이그레이션</div>
+      <div class="sub">v18 · 종가표시 분리 + 높이 통일</div>
     </div>
     <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;">
       <button onclick="sxCheckSaved()" style="background:#1e2a38;border:1px solid #2a3a4a;color:#58b4ff;font-family:'JetBrains Mono',monospace;font-size:10px;padding:4px 8px;border-radius:6px;cursor:pointer;white-space:nowrap;">업데이트</button>
       <div style="margin:0;font-size:12px;color:#5a6a7a;font-family:'JetBrains Mono',monospace;">최근 업데이트: <span id="sx-last-update">-</span></div>
+    </div>
+  </div>
+
+  <div style="display:flex;gap:12px;align-items:center;margin-bottom:10px;font-family:'JetBrains Mono',monospace;font-size:11px;">
+    <label style="display:flex;align-items:center;gap:4px;cursor:pointer;color:#c8d6e5;">
+      <input type="radio" name="sx-pricemode" value="close" checked onchange="sxSetPriceMode('close')"> 종가
+    </label>
+    <label style="display:flex;align-items:center;gap:4px;cursor:pointer;color:#c8d6e5;">
+      <input type="radio" name="sx-pricemode" value="current" onchange="sxSetPriceMode('current')"> 현재가
+    </label>
+    <div id="sx-close-wrap" style="display:flex;align-items:center;gap:8px;flex:1;min-width:120px;height:34px;box-sizing:border-box;background:#0e1319;border:1px solid #1e2530;border-radius:6px;padding:0 10px;">
+      <span id="sx-close-date" style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#5a6a7a;background:#1e2530;padding:3px 6px;border-radius:4px;white-space:nowrap;">-</span>
+      <span id="sx-close-price" style="font-family:'JetBrains Mono',monospace;font-size:13.5px;font-weight:700;color:#c8d6e5;">-</span>
+    </div>
+    <div id="sx-current-wrap" style="display:none;position:relative;flex:1;min-width:120px;height:34px;box-sizing:border-box;">
+      <input id="sx-current-input" type="text" inputmode="decimal" placeholder="현재가 입력" oninput="sxOnCurrentPriceInput()" style="width:100%;height:100%;box-sizing:border-box;background:#0e1319;border:1px solid #1e2530;border-radius:6px;padding:0 36px 0 9px;color:#e5e9f0;font-size:12.5px;font-family:'JetBrains Mono',monospace;">
+      <div id="sx-current-drag-handle" style="position:absolute;right:4px;top:50%;width:26px;height:26px;border-radius:6px;background:#1e2a38;border:1px solid #2a3a4a;transform:translateY(-50%);display:flex;align-items:center;justify-content:center;color:#58b4ff;font-size:13px;cursor:ns-resize;touch-action:none;user-select:none;">⇕</div>
     </div>
   </div>
 
@@ -760,6 +777,12 @@ tr.drag-over { border-top: 2px solid #00e676; }
     <h3 style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#5a6a7a;letter-spacing:1px;margin-bottom:12px;text-transform:uppercase;">전체 매도 가정 누적 실현손익</h3>
     <canvas id="sx-chart-pnl" height="220"></canvas>
     <div id="sx-legend-pnl" style="margin-top:10px;text-align:center;"></div>
+  </div>
+
+  <div class="table-wrap" style="padding:16px;">
+    <h3 style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#5a6a7a;letter-spacing:1px;margin-bottom:12px;text-transform:uppercase;">A-B 수익 차이</h3>
+    <canvas id="sx-chart-diff" height="220"></canvas>
+    <div id="sx-legend-diff" style="margin-top:10px;text-align:center;"></div>
   </div>
 
   <h3 style="font-family:'JetBrains Mono',monospace;color:#58b4ff;font-size:13px;margin-bottom:8px;position:relative;z-index:1;">A계좌 — 이동평균법 기준</h3>
@@ -1659,6 +1682,10 @@ const SX_SEED_B = [
 ];
 
 let sxA = [], sxB = [];
+let sxFullRows = [];
+let sxRangeStart = 0, sxRangeEnd = null;
+let sxPriceMode = 'close';
+let sxCurrentPrice = null;
 let sxChartBalance = null, sxChartPnl = null;
 
 function sxParseTxDelta(tx) {
@@ -1686,6 +1713,15 @@ function sxLastState(data) {
   }
   const lastCum = (last.cum !== null && last.cum !== undefined) ? last.cum : 0;
   return { balance, avg, cum: lastCum };
+}
+
+// 지정한 가격(종가 or 현재가)으로 전량 매도했다고 가정했을 때의 누적 실현손익
+function sxHypoAt(data, price) {
+  const state = sxLastState(data);
+  if (price === null || price === undefined || isNaN(price) || state.avg === null || !state.balance) {
+    return state.cum;
+  }
+  return Math.round((state.cum + (price - state.avg) * state.balance) * 100) / 100;
 }
 function sxComputeNewRow({ data, date, type, qty, close, trade }) {
   const prev = sxLastState(data);
@@ -1857,14 +1893,14 @@ function sxDrawChart(canvasId, legendId, labels, series, opts) {
     `).join('');
   }
 
-  sxChartInfo[canvasId] = { ctx, cssWidth, cssHeight, padL, padT, plotW, plotH, lMin, lMax, rMin, rMax, hasRight, xPos, yPosLeft, yPosRight, labels, series, activeIdx: null };
+  sxChartInfo[canvasId] = { ctx, cssWidth, cssHeight, padL, padT, plotW, plotH, lMin, lMax, rMin, rMax, hasRight, xPos, yPosLeft, yPosRight, labels, series, activeIdx: null, opts: opts || {} };
 
   sxRedraw(canvasId);
 
   if (!canvas.dataset.sxBound) {
     canvas.dataset.sxBound = '1';
     canvas.parentElement.style.position = 'relative';
-    canvas.style.touchAction = 'pan-y';
+    canvas.style.touchAction = 'none';
     const move = (clientX) => {
       const info = sxChartInfo[canvasId];
       if (!info) return;
@@ -1885,15 +1921,15 @@ function sxDrawChart(canvasId, legendId, labels, series, opts) {
     };
     canvas.addEventListener('mousedown', (e) => move(e.clientX));
     canvas.addEventListener('mousemove', (e) => { if (e.buttons === 1) move(e.clientX); });
-    canvas.addEventListener('touchstart', (e) => { if (e.touches[0]) move(e.touches[0].clientX); }, { passive: true });
-    canvas.addEventListener('touchmove', (e) => { if (e.touches[0]) move(e.touches[0].clientX); }, { passive: true });
+    canvas.addEventListener('touchstart', (e) => { if (e.touches.length === 1) move(e.touches[0].clientX); }, { passive: true });
+    canvas.addEventListener('touchmove', (e) => { if (e.touches.length === 1) move(e.touches[0].clientX); }, { passive: true });
     canvas.addEventListener('mouseleave', () => sxSyncActive(null));
     canvas.addEventListener('touchend', () => { clearTimeout(canvas._sxLeaveTimer); canvas._sxLeaveTimer = setTimeout(() => sxSyncActive(null), 3000); });
   }
 }
 
 // 두 차트가 같은 날짜 축을 공유하므로, 한쪽을 터치하면 둘 다 같은 지점을 하이라이트
-const SX_LINKED_CHARTS = ['sx-chart-balance', 'sx-chart-pnl'];
+const SX_LINKED_CHARTS = ['sx-chart-balance', 'sx-chart-pnl', 'sx-chart-diff'];
 function sxSyncActive(idx) {
   SX_LINKED_CHARTS.forEach(id => {
     const info = sxChartInfo[id];
@@ -1912,7 +1948,7 @@ function sxSyncActive(idx) {
 function sxRedraw(canvasId) {
   const info = sxChartInfo[canvasId];
   if (!info) return;
-  const { ctx, cssWidth, cssHeight, padL, padT, plotW, plotH, lMin, lMax, rMin, rMax, hasRight, xPos, yPosLeft, yPosRight, labels, series, activeIdx } = info;
+  const { ctx, cssWidth, cssHeight, padL, padT, plotW, plotH, lMin, lMax, rMin, rMax, hasRight, xPos, yPosLeft, yPosRight, labels, series, activeIdx, opts } = info;
 
   ctx.clearRect(0, 0, cssWidth, cssHeight);
 
@@ -1921,6 +1957,19 @@ function sxRedraw(canvasId) {
   for (let i = 0; i <= 4; i++) {
     const y = padT + plotH * i / 4;
     ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(padL + plotW, y); ctx.stroke();
+  }
+
+  // 0 기준선 (opts.zeroLine이 true일 때)
+  if (opts && opts.zeroLine && lMin < 0 && lMax > 0) {
+    const zy = yPosLeft(0);
+    ctx.strokeStyle = 'rgba(255,255,255,0.25)'; ctx.lineWidth = 1;
+    ctx.setLineDash([4, 4]);
+    ctx.beginPath(); ctx.moveTo(padL, zy); ctx.lineTo(padL + plotW, zy); ctx.stroke();
+    ctx.setLineDash([]);
+
+    ctx.fillStyle = '#c8d6e5'; ctx.font = 'bold 9px "JetBrains Mono", monospace';
+    ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+    ctx.fillText('0', padL - 6, zy);
   }
 
   // y labels
@@ -2013,17 +2062,35 @@ function sxShowTooltip(canvasId, idx) {
 }
 
 function renderSoxl() {
-  const rows = sxBuildChartRows(sxA, sxB);
-  const last = rows.length ? rows[rows.length - 1] : { aTotal: null, bTotal: null, aBalance: null, bBalance: null, date: "-" };
+  const fullRows = sxBuildChartRows(sxA, sxB);
+  sxFullRows = fullRows;
+
+  // 슬라이더 범위 초기화/보정 (데이터 개수가 바뀌어도 범위가 깨지지 않도록)
+  if (sxRangeEnd === null || sxRangeEnd > fullRows.length - 1) sxRangeEnd = fullRows.length - 1;
+  if (sxRangeStart > sxRangeEnd) sxRangeStart = sxRangeEnd;
+  if (sxRangeStart < 0) sxRangeStart = 0;
+
+  const last = fullRows.length ? fullRows[fullRows.length - 1] : { aTotal: null, bTotal: null, aBalance: null, bBalance: null, date: "-" };
 
   document.getElementById('sx-last-update').textContent = last.date;
-  const aTotalEl = document.getElementById('sx-a-total');
-  aTotalEl.textContent = sxFmt(last.aTotal); aTotalEl.style.color = sxColor(last.aTotal);
-  const bTotalEl = document.getElementById('sx-b-total');
-  bTotalEl.textContent = sxFmt(last.bTotal); bTotalEl.style.color = sxColor(last.bTotal);
-  document.getElementById('sx-a-balance').textContent = (last.aBalance === null || last.aBalance === undefined) ? '' : last.aBalance;
-  document.getElementById('sx-b-balance').textContent = (last.bBalance === null || last.bBalance === undefined) ? '' : last.bBalance;
+  sxUpdateCloseDisplay();
 
+  const lastClose = fullRows.length ? fullRows[fullRows.length - 1].close : null;
+  const price = sxPriceMode === 'current' ? sxCurrentPrice : lastClose;
+  const aStateNow = sxLastState(sxA);
+  const bStateNow = sxLastState(sxB);
+  const aTotalNow = sxHypoAt(sxA, price);
+  const bTotalNow = sxHypoAt(sxB, price);
+
+  const aTotalEl = document.getElementById('sx-a-total');
+  aTotalEl.textContent = sxFmt(aTotalNow); aTotalEl.style.color = sxColor(aTotalNow);
+  const bTotalEl = document.getElementById('sx-b-total');
+  bTotalEl.textContent = sxFmt(bTotalNow); bTotalEl.style.color = sxColor(bTotalNow);
+  document.getElementById('sx-a-balance').textContent = aStateNow.balance;
+  document.getElementById('sx-b-balance').textContent = bStateNow.balance;
+
+  // 차트에는 슬라이더로 선택한 구간만 사용 (표/요약카드는 항상 전체 데이터 기준)
+  const rows = fullRows.slice(sxRangeStart, sxRangeEnd + 1);
   const labels = rows.map(r => r.date);
 
   sxDrawChart('sx-chart-balance', 'sx-legend-balance', labels, [
@@ -2032,14 +2099,216 @@ function renderSoxl() {
     { label: '종가', data: rows.map(r => r.close), color: '#ffd740', axis: 'right', dashed: true },
   ], { leftMin: 0 });
 
+  const diffData = rows.map(r => (r.aTotal !== null && r.aTotal !== undefined && r.bTotal !== null && r.bTotal !== undefined)
+    ? Math.round((r.aTotal - r.bTotal) * 100) / 100
+    : null);
+
   sxDrawChart('sx-chart-pnl', 'sx-legend-pnl', labels, [
     { label: 'A계좌', data: rows.map(r => r.aTotal), color: '#58b4ff', axis: 'left' },
     { label: 'B계좌', data: rows.map(r => r.bTotal), color: '#ff80ab', axis: 'left' },
     { label: '종가', data: rows.map(r => r.close), color: '#ffd740', axis: 'right', dashed: true },
   ]);
 
-  sxRenderTable(sxA, 'sx-a-tbody', rows, 'a');
-  sxRenderTable(sxB, 'sx-b-tbody', rows, 'b');
+  sxDrawChart('sx-chart-diff', 'sx-legend-diff', labels, [
+    { label: 'A-B 차이', data: diffData, color: '#a78bfa', axis: 'left' },
+    { label: '종가', data: rows.map(r => r.close), color: '#ffd740', axis: 'right', dashed: true },
+  ], { zeroLine: true });
+
+  sxUpdateRangeUI();
+  sxBindRangeDrag();
+
+  // 표는 항상 전체 데이터를 기준으로
+  sxRenderTable(sxA, 'sx-a-tbody', fullRows, 'a');
+  sxRenderTable(sxB, 'sx-b-tbody', fullRows, 'b');
+}
+
+function sxSetPriceMode(mode) {
+  sxPriceMode = mode;
+  const closeWrap = document.getElementById('sx-close-wrap');
+  const wrap = document.getElementById('sx-current-wrap');
+  const input = document.getElementById('sx-current-input');
+  if (closeWrap) closeWrap.style.display = mode === 'close' ? 'flex' : 'none';
+  if (wrap) wrap.style.display = mode === 'current' ? 'block' : 'none';
+  if (input) {
+    if (mode === 'current' && !input.value && sxCurrentPrice === null) {
+      const lastClose = sxFullRows.length ? sxFullRows[sxFullRows.length - 1].close : null;
+      if (lastClose !== null) {
+        input.value = lastClose;
+        sxCurrentPrice = lastClose;
+      }
+    }
+    if (mode === 'current') sxAttachDragAdjust();
+  }
+  sxUpdateSummary();
+}
+
+function sxUpdateCloseDisplay() {
+  const dateEl = document.getElementById('sx-close-date');
+  const priceEl = document.getElementById('sx-close-price');
+  if (!dateEl || !priceEl) return;
+  if (!sxFullRows.length) { dateEl.textContent = '-'; priceEl.textContent = '-'; return; }
+  const last = sxFullRows[sxFullRows.length - 1];
+  dateEl.textContent = last.date;
+  priceEl.textContent = sxFmtPlain(last.close);
+}
+
+// 우측 드래그 핸들(⇕)을 위/아래로 움직이면 현재가 입력값이 0.1 단위로 증가/감소
+function sxAttachDragAdjust() {
+  const handle = document.getElementById('sx-current-drag-handle');
+  const el = document.getElementById('sx-current-input');
+  if (!handle || !el || handle.dataset.sxDragBound) return;
+  handle.dataset.sxDragBound = '1';
+
+  let startY = null, startVal = 0, dragging = false;
+  const SENSITIVITY = 0.1; // 1px 당 0.1 단위 변화
+
+  function getVal() { const v = Number(el.value); return isNaN(v) ? 0 : v; }
+  function snap(v) { return Math.round(v * 10) / 10; }
+
+  function start(y) { startY = y; startVal = getVal(); dragging = true; }
+  function move(y) {
+    if (!dragging) return;
+    const dy = startY - y; // 위로 드래그하면 양수(값 증가)
+    let newVal = snap(startVal + Math.round(dy * SENSITIVITY / 0.1) * 0.1);
+    if (newVal < 0) newVal = 0;
+    el.value = newVal.toFixed(1);
+    sxCurrentPrice = newVal;
+    sxUpdateSummary();
+  }
+  function end() { dragging = false; }
+
+  handle.addEventListener('touchstart', (e) => { if (e.touches[0]) start(e.touches[0].clientY); }, { passive: true });
+  handle.addEventListener('touchmove', (e) => {
+    if (dragging && e.touches[0]) { e.preventDefault(); move(e.touches[0].clientY); }
+  }, { passive: false });
+  handle.addEventListener('touchend', end);
+
+  handle.addEventListener('mousedown', (e) => {
+    e.preventDefault();
+    start(e.clientY);
+    const mm = (ev) => move(ev.clientY);
+    const mu = () => { end(); document.removeEventListener('mousemove', mm); document.removeEventListener('mouseup', mu); };
+    document.addEventListener('mousemove', mm);
+    document.addEventListener('mouseup', mu);
+  });
+}
+
+function sxOnCurrentPriceInput() {
+  const input = document.getElementById('sx-current-input');
+  const v = input ? Number(input.value) : NaN;
+  sxCurrentPrice = (input && input.value !== '' && !isNaN(v)) ? v : null;
+  sxUpdateSummary();
+}
+
+// 차트/표는 다시 그리지 않고 상단 요약카드 두 개만 가볍게 갱신
+function sxUpdateSummary() {
+  const lastClose = sxFullRows.length ? sxFullRows[sxFullRows.length - 1].close : null;
+  const price = sxPriceMode === 'current' ? sxCurrentPrice : lastClose;
+  const aTotalNow = sxHypoAt(sxA, price);
+  const bTotalNow = sxHypoAt(sxB, price);
+  const aTotalEl = document.getElementById('sx-a-total');
+  if (aTotalEl) { aTotalEl.textContent = sxFmt(aTotalNow); aTotalEl.style.color = sxColor(aTotalNow); }
+  const bTotalEl = document.getElementById('sx-b-total');
+  if (bTotalEl) { bTotalEl.textContent = sxFmt(bTotalNow); bTotalEl.style.color = sxColor(bTotalNow); }
+}
+
+function sxResetRange() {
+  sxRangeStart = 0;
+  sxRangeEnd = sxFullRows.length ? sxFullRows.length - 1 : 0;
+  renderSoxl();
+}
+
+function sxUpdateRangeUI() {
+  const label = document.getElementById('sx-range-label');
+  if (!label || !sxFullRows.length) return;
+  if (sxRangeStart === 0 && sxRangeEnd === sxFullRows.length - 1) {
+    label.textContent = '두 손가락으로 핀치 확대/축소 · 두 손가락 드래그로 이동';
+  } else {
+    label.textContent = `📍 ${sxFullRows[sxRangeStart].date} ~ ${sxFullRows[sxRangeEnd].date}`;
+  }
+}
+
+// 핀치 줌 + 두 손가락 드래그(팬)을 각 차트 캔버스에 바인딩
+function sxAttachPinchPan(canvas) {
+  if (canvas.dataset.sxPinchBound) return;
+  canvas.dataset.sxPinchBound = '1';
+
+  function dist(t1, t2) { return Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY); }
+  function midX(t1, t2) { return (t1.clientX + t2.clientX) / 2; }
+
+  let pinch = null;
+  let rafPending = false;
+
+  function scheduleRerender() {
+    if (rafPending) return;
+    rafPending = true;
+    requestAnimationFrame(() => { rafPending = false; renderSoxl(); });
+  }
+
+  function inPlotArea(clientX, clientY) {
+    const info = sxChartInfo[canvas.id];
+    if (!info) return false;
+    const rect = canvas.getBoundingClientRect();
+    const x = clientX - rect.left, y = clientY - rect.top;
+    return x >= info.padL && x <= info.padL + info.plotW && y >= info.padT && y <= info.padT + info.plotH;
+  }
+
+  canvas.addEventListener('touchstart', (e) => {
+    if (e.touches.length === 2) {
+      if (!inPlotArea(e.touches[0].clientX, e.touches[0].clientY) || !inPlotArea(e.touches[1].clientX, e.touches[1].clientY)) {
+        pinch = null;
+        return;
+      }
+      pinch = {
+        startDist: dist(e.touches[0], e.touches[1]),
+        startMid: midX(e.touches[0], e.touches[1]),
+        startRange: [sxRangeStart, sxRangeEnd],
+      };
+      sxSyncActive(null);
+    }
+  }, { passive: true });
+
+  canvas.addEventListener('touchmove', (e) => {
+    if (e.touches.length === 2 && pinch) {
+      const n = (sxFullRows.length - 1) || 1;
+      const curDist = dist(e.touches[0], e.touches[1]);
+      const scale = pinch.startDist > 10 ? (pinch.startDist / Math.max(curDist, 10)) : 1;
+      const [s0, e0] = pinch.startRange;
+      const center = (s0 + e0) / 2;
+      let halfRange = ((e0 - s0) / 2) * scale;
+      halfRange = Math.max(1, Math.min(n / 2, halfRange));
+
+      const curMid = midX(e.touches[0], e.touches[1]);
+      const dx = curMid - pinch.startMid;
+      const rect = canvas.getBoundingClientRect();
+      const shiftIdx = Math.round((dx / Math.max(rect.width, 1)) * n);
+      const newCenter = center - shiftIdx;
+
+      let newStart = Math.round(newCenter - halfRange);
+      let newEnd = Math.round(newCenter + halfRange);
+      if (newEnd - newStart < 1) newEnd = newStart + 1;
+      if (newStart < 0) { newEnd -= newStart; newStart = 0; }
+      if (newEnd > n) { newStart -= (newEnd - n); newEnd = n; }
+      newStart = Math.max(0, newStart);
+      newEnd = Math.min(n, newEnd);
+
+      sxRangeStart = newStart;
+      sxRangeEnd = newEnd;
+      scheduleRerender();
+    }
+  }, { passive: true });
+
+  canvas.addEventListener('touchend', (e) => {
+    if (e.touches.length < 2) pinch = null;
+  });
+}
+
+function sxBindRangeDrag() {
+  // 세 차트 각각에 핀치줌/팬 제스처 바인딩
+  SX_LINKED_CHARTS.forEach(id => {
+    const c = document.getElementById(id);
+    if (c) sxAttachPinchPan(c);
+  });
 }
 
 function sxRenderTable(data, tbodyId, chartRows, which) {
