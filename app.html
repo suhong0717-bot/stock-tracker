@@ -683,7 +683,7 @@ tr.drag-over { border-top: 2px solid #00e676; }
   <div class="st-header">
     <div class="st-header-left">
       <h1>SOXL TRACKER</h1>
-      <div class="sub">v20 · 뒤로가기 가드 에러 방어</div>
+      <div class="sub">v21 · 뒤로가기 디버그 배지 추가</div>
     </div>
     <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;">
       <button onclick="sxCheckSaved()" style="background:#1e2a38;border:1px solid #2a3a4a;color:#58b4ff;font-family:'JetBrains Mono',monospace;font-size:10px;padding:4px 8px;border-radius:6px;cursor:pointer;white-space:nowrap;">업데이트</button>
@@ -2405,6 +2405,13 @@ window.addEventListener('resize', () => {
   let backArmed = false;
   let toastEl = null;
 
+  // 🔧 임시 디버그 배지: popstate가 실제로 발생하는지 눈으로 확인용
+  let debugEl = document.createElement('div');
+  debugEl.textContent = '뒤로가기 감지 대기중...';
+  debugEl.style.cssText = 'position:fixed;top:6px;left:6px;background:#3b0764;color:#e9d5ff;font-size:10px;font-family:monospace;padding:3px 8px;border-radius:6px;z-index:99999;';
+  document.body.appendChild(debugEl);
+  let popCount = 0;
+
   function showExitToast() {
     if (!toastEl) {
       toastEl = document.createElement('div');
@@ -2421,11 +2428,15 @@ window.addEventListener('resize', () => {
   try {
     // 뒤로가기를 가로챌 수 있도록 더미 히스토리를 하나 쌓아둔다
     history.pushState({ sxExitGuard: true }, '');
+    debugEl.textContent = `히스토리 준비됨 (length=${history.length})`;
   } catch (e) {
+    debugEl.textContent = 'pushState 실패: ' + e.message;
     return; // pushState가 막혀있으면 기능 비활성화
   }
 
   window.addEventListener('popstate', function () {
+    popCount++;
+    debugEl.textContent = `popstate 발생! (${popCount}번째)`;
     if (!backArmed) {
       backArmed = true;
       showExitToast();
