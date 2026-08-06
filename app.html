@@ -683,7 +683,7 @@ tr.drag-over { border-top: 2px solid #00e676; }
   <div class="st-header">
     <div class="st-header-left">
       <h1>SOXL TRACKER</h1>
-      <div class="sub">v18 · 종가표시 분리 + 높이 통일</div>
+      <div class="sub">v20 · 뒤로가기 가드 에러 방어</div>
     </div>
     <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;">
       <button onclick="sxCheckSaved()" style="background:#1e2a38;border:1px solid #2a3a4a;color:#58b4ff;font-family:'JetBrains Mono',monospace;font-size:10px;padding:4px 8px;border-radius:6px;cursor:pointer;white-space:nowrap;">업데이트</button>
@@ -2394,6 +2394,50 @@ window.addEventListener('resize', () => {
   const soxlPage = document.getElementById('page-soxl');
   if (soxlPage && soxlPage.classList.contains('active')) renderSoxl();
 });
+
+// ══════════════════════════════════
+// 뒤로가기(취소) 두 번 눌러야 종료
+// ══════════════════════════════════
+(function () {
+  // 이 API를 지원하지 않거나 막혀있는 환경(일부 샌드박스 미리보기 등)에서는 기능만 조용히 비활성화
+  if (typeof history === 'undefined' || typeof history.pushState !== 'function') return;
+
+  let backArmed = false;
+  let toastEl = null;
+
+  function showExitToast() {
+    if (!toastEl) {
+      toastEl = document.createElement('div');
+      toastEl.textContent = '한 번 더 뒤로가면 앱이 종료돼요';
+      toastEl.style.cssText = 'position:fixed;bottom:96px;left:50%;transform:translateX(-50%);background:#1e2a38;color:#e5e9f0;padding:10px 18px;border-radius:20px;font-family:"JetBrains Mono",monospace;font-size:12.5px;border:1px solid #2a3a4a;z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,0.5);white-space:nowrap;';
+      document.body.appendChild(toastEl);
+    }
+    toastEl.style.display = 'block';
+  }
+  function hideExitToast() {
+    if (toastEl) toastEl.style.display = 'none';
+  }
+
+  try {
+    // 뒤로가기를 가로챌 수 있도록 더미 히스토리를 하나 쌓아둔다
+    history.pushState({ sxExitGuard: true }, '');
+  } catch (e) {
+    return; // pushState가 막혀있으면 기능 비활성화
+  }
+
+  window.addEventListener('popstate', function () {
+    if (!backArmed) {
+      backArmed = true;
+      showExitToast();
+      // 다시 더미 상태를 쌓아서 이번 뒤로가기는 취소(앱은 그대로 유지)
+      try { history.pushState({ sxExitGuard: true }, ''); } catch (e) {}
+      clearTimeout(window._sxExitTimer);
+      window._sxExitTimer = setTimeout(() => { backArmed = false; hideExitToast(); }, 2000);
+    }
+    // 2초 안에 한 번 더 뒤로가기를 누르면 backArmed가 이미 true이므로
+    // 여기서 아무것도 하지 않아 실제 뒤로가기(종료)가 진행된다.
+  });
+})();
 
 // ══════════════════════════════════
 // PWA
