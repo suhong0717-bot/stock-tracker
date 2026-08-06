@@ -1,4 +1,4 @@
-const CACHE_NAME = 'stock-tracker-v3';
+const CACHE_NAME = 'stock-tracker-v4';
 const FILES = [
   '/stock-tracker/app.html',
   '/stock-tracker/manifest.json'
