@@ -2467,6 +2467,20 @@ saveHistory();
 updateUndoRedo();
 loadLastUpdate();
 loadMemo();
+
+// 뒤로가기 두 번 누르면 종료
+let backPressedOnce = false;
+window.history.pushState(null, '', location.href);
+window.addEventListener('popstate', function() {
+  if (backPressedOnce) {
+    window.history.go(-1);
+    return;
+  }
+  backPressedOnce = true;
+  window.history.pushState(null, '', location.href);
+  showStToast('한 번 더 누르면 종료돼요');
+  setTimeout(() => { backPressedOnce = false; }, 2000);
+});
 </script>
 </body>
 </html>
