@@ -874,12 +874,12 @@ tr.drag-over { border-top: 2px solid #00e676; }
 <!-- Bottom Tab Bar -->
 <!-- 버전 정보 뱃지 버튼 -->
 <div style="position:fixed;top:8px;left:8px;z-index:9999;">
-  <button onclick="toggleVersionPopup(event)" style="background:#1e2a38;border:1px solid #58b4ff;color:#58b4ff;font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;padding:3px 8px;border-radius:20px;cursor:pointer;">v08.07g</button>
+  <button onclick="toggleVersionPopup(event)" style="background:#1e2a38;border:1px solid #58b4ff;color:#58b4ff;font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;padding:3px 8px;border-radius:20px;cursor:pointer;">v08.07h</button>
   <div id="versionPopup" style="display:none;position:absolute;left:0;top:28px;background:#0d1117;border:1px solid #1e2a38;border-radius:10px;padding:12px 16px;width:max-content;box-shadow:0 4px 16px rgba(0,0,0,0.6);">
     <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#58b4ff;font-weight:700;margin-bottom:8px;">업데이트 내역</div>
     <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#c9d1d9;line-height:1.8;">
-      <div style="white-space:nowrap;"><span style="color:#58b4ff;">v08.07g</span> · 뒤로가기 스택 유지 방식</div>
-      <div style="white-space:nowrap;"><span style="color:#5a6a7a;">v08.07f</span> · 뒤로가기 방식 재시도</div>
+      <div style="white-space:nowrap;"><span style="color:#58b4ff;">v08.07h</span> · 뒤로가기 탭전환마다 스택 추가</div>
+      <div style="white-space:nowrap;"><span style="color:#5a6a7a;">v08.07g</span> · 뒤로가기 스택 유지 방식</div>
       <div style="white-space:nowrap;"><span style="color:#5a6a7a;">v08.07</span> · 뒤로가기 개선 / 버전 뱃지 추가</div>
     </div>
   </div>
@@ -996,6 +996,8 @@ function switchTab(tab) {
   document.getElementById('tab-' + tab).classList.add('active');
   if (tab === 'asset') renderAll();
   if (tab === 'soxl') renderSoxl();
+  // 탭 전환마다 스택 추가
+  window.history.pushState(null, '', location.href);
 }
 
 // ══════════════════════════════════
