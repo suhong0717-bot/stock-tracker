@@ -874,7 +874,7 @@ tr.drag-over { border-top: 2px solid #00e676; }
 <!-- Bottom Tab Bar -->
 <!-- 버전 정보 뱃지 버튼 -->
 <div style="position:fixed;top:8px;left:8px;z-index:9999;">
-  <button onclick="toggleVersionPopup(event)" style="background:#1e2a38;border:1px solid #58b4ff;color:#58b4ff;font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;padding:3px 8px;border-radius:20px;cursor:pointer;">v08.07o</button>
+  <button onclick="toggleVersionPopup(event)" style="background:#1e2a38;border:1px solid #58b4ff;color:#58b4ff;font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;padding:3px 8px;border-radius:20px;cursor:pointer;">v08.07p</button>
   <div id="versionPopup" style="display:none;position:absolute;left:0;top:28px;background:#0d1117;border:1px solid #1e2a38;border-radius:10px;padding:12px 16px;width:max-content;box-shadow:0 4px 16px rgba(0,0,0,0.6);">
     <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#58b4ff;font-weight:700;margin-bottom:8px;">업데이트 내역</div>
     <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#c9d1d9;line-height:1.8;">
@@ -2495,6 +2495,14 @@ saveHistory();
 updateUndoRedo();
 loadLastUpdate();
 loadMemo();
+
+// 앱 시작 시 스택 강제 생성
+setTimeout(function() {
+  switchTab('asset');
+  setTimeout(function() {
+    switchTab('stock');
+  }, 50);
+}, 500);
 
 // 뒤로가기 → 팝업 → 한번더 → 종료
 setTimeout(function() {
