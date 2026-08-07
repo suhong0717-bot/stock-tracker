@@ -874,12 +874,12 @@ tr.drag-over { border-top: 2px solid #00e676; }
 <!-- Bottom Tab Bar -->
 <!-- 버전 정보 뱃지 버튼 -->
 <div style="position:fixed;top:8px;left:8px;z-index:9999;">
-  <button onclick="toggleVersionPopup(event)" style="background:#1e2a38;border:1px solid #58b4ff;color:#58b4ff;font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;padding:3px 8px;border-radius:20px;cursor:pointer;">v08.07i</button>
+  <button onclick="toggleVersionPopup(event)" style="background:#1e2a38;border:1px solid #58b4ff;color:#58b4ff;font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;padding:3px 8px;border-radius:20px;cursor:pointer;">v08.07j</button>
   <div id="versionPopup" style="display:none;position:absolute;left:0;top:28px;background:#0d1117;border:1px solid #1e2a38;border-radius:10px;padding:12px 16px;width:max-content;box-shadow:0 4px 16px rgba(0,0,0,0.6);">
     <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#58b4ff;font-weight:700;margin-bottom:8px;">업데이트 내역</div>
     <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#c9d1d9;line-height:1.8;">
-      <div style="white-space:nowrap;"><span style="color:#58b4ff;">v08.07i</span> · 뒤로가기 초기 스택 3개 + 종료</div>
-      <div style="white-space:nowrap;"><span style="color:#5a6a7a;">v08.07h</span> · 뒤로가기 탭전환마다 스택 추가</div>
+      <div style="white-space:nowrap;"><span style="color:#58b4ff;">v08.07j</span> · 뒤로가기 종료확인 팝업 방식</div>
+      <div style="white-space:nowrap;"><span style="color:#5a6a7a;">v08.07i</span> · 뒤로가기 초기 스택 3개</div>
       <div style="white-space:nowrap;"><span style="color:#5a6a7a;">v08.07</span> · 뒤로가기 개선 / 버전 뱃지 추가</div>
     </div>
   </div>
@@ -2499,26 +2499,34 @@ updateUndoRedo();
 loadLastUpdate();
 loadMemo();
 
-// 뒤로가기 두 번 누르면 종료
-let backPressedOnce = false;
-let backPressTimer = null;
+// 뒤로가기 → 종료 확인 팝업
 setTimeout(function() {
-  // 시작할 때 스택 3개 미리 쌓기
   window.history.pushState(null, '', location.href);
   window.history.pushState(null, '', location.href);
   window.history.pushState(null, '', location.href);
   window.addEventListener('popstate', function() {
-    // 항상 스택 다시 쌓기
     window.history.pushState(null, '', location.href);
-    if (backPressedOnce) {
-      backPressedOnce = false;
-      window.history.go(-4);
-      return;
-    }
-    backPressedOnce = true;
-    try { showStToast('한 번 더 누르면 종료돼요'); } catch(e) {}
-    clearTimeout(backPressTimer);
-    backPressTimer = setTimeout(() => { backPressedOnce = false; }, 2000);
+    // 팝업이 이미 떠있으면 무시
+    if (document.getElementById('exit-popup')) return;
+    const popup = document.createElement('div');
+    popup.id = 'exit-popup';
+    popup.style.cssText = `
+      position:fixed;top:0;left:0;right:0;bottom:0;
+      background:rgba(0,0,0,0.7);z-index:99999;
+      display:flex;align-items:center;justify-content:center;
+    `;
+    popup.innerHTML = `
+      <div style="background:#0d1117;border:1px solid #2a3a4a;border-radius:14px;padding:24px 28px;width:260px;text-align:center;">
+        <div style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#c9d1d9;margin-bottom:20px;line-height:1.6;">앱을 종료하시겠습니까?</div>
+        <div style="display:flex;gap:10px;">
+          <button onclick="document.getElementById('exit-popup').remove();"
+            style="flex:1;padding:10px;background:#1e2a38;border:1px solid #2a3a4a;border-radius:8px;color:#c9d1d9;font-family:'JetBrains Mono',monospace;font-size:12px;cursor:pointer;">아니오</button>
+          <button onclick="window.history.go(-10);"
+            style="flex:1;padding:10px;background:#ff5252;border:none;border-radius:8px;color:white;font-family:'JetBrains Mono',monospace;font-size:12px;cursor:pointer;">예</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(popup);
   });
 }, 1000);
 </script>
