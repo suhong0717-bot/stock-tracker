@@ -498,7 +498,7 @@ tr.drag-over { border-top: 2px solid #00e676; }
   <!-- 메모 패널 -->
   <div class="port-panel" id="memoPanel" style="margin-bottom:10px;">
     <div class="port-toggle" onclick="toggleMemo()">
-      <span class="port-toggle-label">✏️ 메모 <span id="memoTitle" style="font-size:10px;color:#5a6a7a;font-weight:400;"></span></span>
+      <span class="port-toggle-label">✏️ 메모</span>
       <span class="port-chevron" id="memoChevron">▼</span>
     </div>
     <div id="memoBody" style="display:none; border-top:1px solid #1e2a38; padding:10px 14px;">
@@ -683,7 +683,6 @@ tr.drag-over { border-top: 2px solid #00e676; }
   <div class="st-header">
     <div class="st-header-left">
       <h1>SOXL TRACKER</h1>
-      <div class="sub">v21 · 뒤로가기 디버그 배지 추가</div>
     </div>
     <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;">
       <button onclick="sxCheckSaved()" style="background:#1e2a38;border:1px solid #2a3a4a;color:#58b4ff;font-family:'JetBrains Mono',monospace;font-size:10px;padding:4px 8px;border-radius:6px;cursor:pointer;white-space:nowrap;">업데이트</button>
@@ -873,6 +872,18 @@ tr.drag-over { border-top: 2px solid #00e676; }
 </div>
 
 <!-- Bottom Tab Bar -->
+<!-- 버전 정보 뱃지 버튼 -->
+<div style="position:fixed;top:8px;left:8px;z-index:9999;">
+  <button onclick="toggleVersionPopup(event)" style="background:#1e2a38;border:1px solid #58b4ff;color:#58b4ff;font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;padding:3px 8px;border-radius:20px;cursor:pointer;">v08.07</button>
+  <div id="versionPopup" style="display:none;position:absolute;left:0;top:28px;background:#0d1117;border:1px solid #1e2a38;border-radius:10px;padding:12px 16px;width:max-content;box-shadow:0 4px 16px rgba(0,0,0,0.6);">
+    <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#58b4ff;font-weight:700;margin-bottom:8px;">업데이트 내역</div>
+    <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#c9d1d9;line-height:1.8;">
+      <div style="white-space:nowrap;"><span style="color:#58b4ff;">v08.07</span> · 뒤로가기 개선 / 버전 뱃지 추가</div>
+      <div style="white-space:nowrap;"><span style="color:#5a6a7a;">v07.27</span> · 뒤로가기 디버그 배지 추가</div>
+    </div>
+  </div>
+</div>
+
 <nav class="tab-bar">
   <button class="tab-btn active" id="tab-stock" onclick="switchTab('stock')">
     <span class="tab-icon">📈</span>
@@ -1357,6 +1368,23 @@ function loadMemo() {
     const initial = getDateStamp() + ' - 메모장 생성';
     localStorage.setItem('tracker-memo-title', initial);
     updateMemoTitle(initial);
+  }
+}
+
+function toggleVersionPopup(e) {
+  e.stopPropagation();
+  const p = document.getElementById('versionPopup');
+  const isHidden = p.style.display === 'none';
+  p.style.display = isHidden ? 'block' : 'none';
+  if (isHidden) {
+    setTimeout(() => {
+      document.addEventListener('click', function handler(e) {
+        if (!p.contains(e.target)) {
+          p.style.display = 'none';
+          document.removeEventListener('click', handler);
+        }
+      });
+    }, 10);
   }
 }
 
@@ -2470,14 +2498,10 @@ loadMemo();
 
 // 뒤로가기 두 번 누르면 종료
 let backPressedOnce = false;
-window.history.pushState(null, '', location.href);
-window.addEventListener('popstate', function() {
-  if (backPressedOnce) {
-    window.history.go(-1);
-    return;
-  }
+document.addEventListener('backbutton', function(e) {
+  e.preventDefault();
+  if (backPressedOnce) return;
   backPressedOnce = true;
-  window.history.pushState(null, '', location.href);
   showStToast('한 번 더 누르면 종료돼요');
   setTimeout(() => { backPressedOnce = false; }, 2000);
 });
